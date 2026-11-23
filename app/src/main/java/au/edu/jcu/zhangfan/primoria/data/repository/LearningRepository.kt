@@ -10,6 +10,7 @@ import au.edu.jcu.zhangfan.primoria.data.remote.ApiKeyProvider
 import au.edu.jcu.zhangfan.primoria.data.remote.ParsedQuiz
 import au.edu.jcu.zhangfan.primoria.data.remote.QuizRemoteDataSource
 import au.edu.jcu.zhangfan.primoria.domain.logic.MasteryCalculator
+import au.edu.jcu.zhangfan.primoria.domain.logic.OptionShuffler
 import au.edu.jcu.zhangfan.primoria.domain.logic.TopicNormalizer
 import au.edu.jcu.zhangfan.primoria.domain.logic.XpPolicy
 import au.edu.jcu.zhangfan.primoria.domain.model.ContentSource
@@ -97,7 +98,7 @@ class DefaultLearningRepository @Inject constructor(
                 val topic = topicDao.getOrCreate(libraryTopic.title, TopicNormalizer.key(libraryTopic.title), now)
                 questionDao.insertAll(
                     libraryTopic.questions.map {
-                        it.toEntity(topic.id, Difficulty.STANDARD, ContentSource.OFFLINE_LIBRARY, now)
+                        OptionShuffler.shuffle(it).toEntity(topic.id, Difficulty.STANDARD, ContentSource.OFFLINE_LIBRARY, now)
                     },
                 )
             }

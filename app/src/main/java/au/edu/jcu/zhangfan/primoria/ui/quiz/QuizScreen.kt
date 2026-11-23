@@ -227,7 +227,11 @@ private fun ActiveQuiz(
     }
 
     Column(Modifier.fillMaxSize()) {
-        LinearProgressIndicator(progress = { progress }, modifier = Modifier.fillMaxWidth())
+        LinearProgressIndicator(
+            progress = { progress },
+            trackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+            modifier = Modifier.fillMaxWidth(),
+        )
         AnimatedContent(
             targetState = state.index,
             transitionSpec = {
@@ -237,11 +241,16 @@ private fun ActiveQuiz(
             modifier = Modifier.weight(1f),
         ) { index ->
             val question = state.questions[index]
+            val scrollState = rememberScrollState()
+            // Bring the explanation into view once an answer is checked.
+            LaunchedEffect(state.feedback != null) {
+                if (state.feedback != null) scrollState.animateScrollTo(scrollState.maxValue)
+            }
             Column(
                 verticalArrangement = Arrangement.spacedBy(16.dp),
                 modifier = Modifier
                     .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
+                    .verticalScroll(scrollState)
                     .padding(16.dp),
             ) {
                 state.notice?.takeIf { index == 0 }?.let { notice ->

@@ -1,5 +1,6 @@
 package au.edu.jcu.zhangfan.primoria.data.remote
 
+import au.edu.jcu.zhangfan.primoria.domain.logic.OptionShuffler
 import au.edu.jcu.zhangfan.primoria.domain.model.AgeGroup
 import au.edu.jcu.zhangfan.primoria.domain.model.Difficulty
 import javax.inject.Inject
@@ -24,6 +25,9 @@ class QuizRemoteDataSource @Inject constructor(
                 messages = QuizPrompt.messages(topic, difficulty, count, ageGroup),
             ),
         )
-        return QuizResponseParser.parse(response.firstContent, maxQuestions = count)
+        return when (val parsed = QuizResponseParser.parse(response.firstContent, maxQuestions = count)) {
+            is ParsedQuiz.Questions -> ParsedQuiz.Questions(parsed.drafts.map { OptionShuffler.shuffle(it) })
+            else -> parsed
+        }
     }
 }

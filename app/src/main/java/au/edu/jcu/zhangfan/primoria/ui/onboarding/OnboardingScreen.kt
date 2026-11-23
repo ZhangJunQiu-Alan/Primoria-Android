@@ -110,6 +110,7 @@ fun OnboardingScreen(
                 Spacer(Modifier.height(16.dp))
                 LinearProgressIndicator(
                     progress = { (state.step + 1) / 3f },
+                    trackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
                     modifier = Modifier.fillMaxWidth(),
                 )
                 Text(
