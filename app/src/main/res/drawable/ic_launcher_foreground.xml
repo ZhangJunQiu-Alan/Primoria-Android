@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Primoria mark: an open book with a rising spark. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M30,44 C38,40 46,40 53,45 L53,74 C46,69 38,69 30,72 Z" />
+    <path
+        android:fillColor="#DCE7F5"
+        android:pathData="M78,44 C70,40 62,40 55,45 L55,74 C62,69 70,69 78,72 Z" />
+    <path
+        android:fillColor="#FFC857"
+        android:pathData="M54,26 L57,35 L66,36 L59,41 L61,50 L54,45 L47,50 L49,41 L42,36 L51,35 Z" />
+</vector>
