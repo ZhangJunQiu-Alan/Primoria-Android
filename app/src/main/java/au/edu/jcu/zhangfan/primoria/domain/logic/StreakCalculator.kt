@@ -42,19 +42,31 @@ object StreakCalculator {
         var freezesUsed = 0
         val earliest = activeDays.minOrNull()?.let(::weekStart)
 
+        fun met(week: LocalDate): Boolean {
+            val weekEnd = week.plusDays(6)
+            return activeDays.count { !it.isBefore(week) && !it.isAfter(weekEnd) } >= goal
+        }
+
         var week = thisWeekStart.minusWeeks(1)
         while (earliest != null && !week.isBefore(earliest)) {
-            val weekEnd = week.plusDays(6)
-            val activeInWeek = activeDays.count { !it.isBefore(week) && !it.isAfter(weekEnd) }
-            when {
-                activeInWeek >= goal -> weeks++
-                freezesLeft > 0 && hasMetGoalBefore(activeDays, week, goal) -> {
-                    freezesLeft--
-                    freezesUsed++
-                }
-                else -> break
+            if (met(week)) {
+                weeks++
+                week = week.minusWeeks(1)
+                continue
             }
-            week = week.minusWeeks(1)
+            // Measure the whole run of missed weeks first: freezes are only spent when
+            // they can actually bridge the gap to an earlier met week.
+            var gap = 0
+            var probe = week
+            while (!probe.isBefore(earliest) && !met(probe)) {
+                gap++
+                probe = probe.minusWeeks(1)
+            }
+            val bridgeable = !probe.isBefore(earliest) && gap <= freezesLeft
+            if (!bridgeable) break
+            freezesLeft -= gap
+            freezesUsed += gap
+            week = probe
         }
 
         return StreakSummary(
@@ -68,10 +80,4 @@ object StreakCalculator {
 
     fun weekStart(date: LocalDate): LocalDate =
         date.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
-
-    /** A freeze only makes sense if there is an earlier met week for it to protect. */
-    private fun hasMetGoalBefore(activeDays: Set<LocalDate>, week: LocalDate, goal: Int): Boolean =
-        activeDays.filter { it.isBefore(week) }
-            .groupBy(::weekStart)
-            .any { (_, days) -> days.size >= goal }
 }
