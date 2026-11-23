@@ -34,6 +34,7 @@ class DefaultPrivacyRepository @Inject constructor(
         topics = database.topicDao().count(),
         questions = database.questionDao().count(),
         attempts = database.attemptDao().count(),
+        reports = database.reportDao().count(),
     )
 
     override suspend fun deleteTopic(topicId: Long) {

@@ -2,6 +2,7 @@ package au.edu.jcu.zhangfan.primoria.data.repository
 
 import androidx.room.withTransaction
 import au.edu.jcu.zhangfan.primoria.data.local.AttemptEntity
+import au.edu.jcu.zhangfan.primoria.data.local.ContentReportEntity
 import au.edu.jcu.zhangfan.primoria.data.local.PrimoriaDatabase
 import au.edu.jcu.zhangfan.primoria.data.local.QuestionEntity
 import au.edu.jcu.zhangfan.primoria.data.local.TopicMasteryEntity
@@ -53,6 +54,7 @@ interface LearningRepository {
     suspend fun ensureLibrarySeeded()
     suspend fun loadQuiz(rawTopic: String, settings: UserSettings): QuizLoadResult
     suspend fun submitAnswer(question: QuizQuestion, chosenIndex: Int, sessionId: String): AnswerResult
+    suspend fun reportQuestion(questionId: Long, reason: String)
 }
 
 @Singleton
@@ -185,6 +187,12 @@ class DefaultLearningRepository @Inject constructor(
                 dailyCapReached = xpToday + xp >= XpPolicy.DAILY_CAP,
             )
         }
+
+    override suspend fun reportQuestion(questionId: Long, reason: String) {
+        database.reportDao().insert(
+            ContentReportEntity(questionId = questionId, reason = reason.take(200), createdAt = clock.millis()),
+        )
+    }
 }
 
 private fun QuestionDraft.toEntity(

@@ -94,3 +94,26 @@ data class TopicMasteryEntity(
     val correct: Int,
     @ColumnInfo(name = "updated_at") val updatedAt: Long,
 )
+
+/**
+ * Commitment 03 — honest AI. A learner can flag a question as wrong or inappropriate;
+ * reports stay on the device and flagged questions are never served again.
+ */
+@Entity(
+    tableName = "content_reports",
+    foreignKeys = [
+        ForeignKey(
+            entity = QuestionEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["question_id"],
+            onDelete = ForeignKey.CASCADE,
+        ),
+    ],
+    indices = [Index("question_id")],
+)
+data class ContentReportEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    @ColumnInfo(name = "question_id") val questionId: Long,
+    val reason: String,
+    @ColumnInfo(name = "created_at") val createdAt: Long,
+)

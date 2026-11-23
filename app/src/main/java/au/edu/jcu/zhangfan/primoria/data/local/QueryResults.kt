@@ -23,4 +23,5 @@ data class StoredDataCounts(
     val topics: Int,
     val questions: Int,
     val attempts: Int,
+    val reports: Int,
 )
