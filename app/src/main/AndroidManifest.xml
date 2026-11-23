@@ -12,7 +12,7 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher"
         android:supportsRtl="true"
-        android:theme="@style/Theme.Primoria">
+        android:theme="@style/Theme.Primoria.Starting">
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -20,6 +20,13 @@
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <!-- primoria://quiz/{topic} opens a quiz directly, e.g. from a teacher's link. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="primoria" android:host="quiz" />
             </intent-filter>
         </activity>
     </application>

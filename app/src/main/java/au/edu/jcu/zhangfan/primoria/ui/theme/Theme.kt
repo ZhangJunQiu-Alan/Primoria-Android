@@ -8,6 +8,9 @@ import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 
@@ -45,6 +48,7 @@ private val DarkColors = darkColorScheme(
 fun PrimoriaTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     dynamicColor: Boolean = false,
+    largeText: Boolean = false,
     content: @Composable () -> Unit,
 ) {
     val colorScheme = when {
@@ -55,5 +59,12 @@ fun PrimoriaTheme(
         darkTheme -> DarkColors
         else -> LightColors
     }
-    MaterialTheme(colorScheme = colorScheme, content = content)
+    // "Larger text" scales on top of the system font size rather than replacing it.
+    val density = LocalDensity.current
+    val scaledDensity = if (largeText) Density(density.density, density.fontScale * LARGE_TEXT_SCALE) else density
+    CompositionLocalProvider(LocalDensity provides scaledDensity) {
+        MaterialTheme(colorScheme = colorScheme, content = content)
+    }
 }
+
+private const val LARGE_TEXT_SCALE = 1.15f
