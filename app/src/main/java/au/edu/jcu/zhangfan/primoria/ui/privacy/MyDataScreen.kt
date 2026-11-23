@@ -7,6 +7,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.outlined.VerifiedUser
+import androidx.compose.material.icons.outlined.Check
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.ui.Alignment
@@ -23,7 +26,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.DeleteOutline
@@ -116,8 +118,8 @@ fun MyDataScreen(
             ) {
                 item {
                     PrimoriaCard(
-                        containerColor = PrimoriaTheme.colors.masteryContainer,
-                        contentColor = PrimoriaTheme.colors.onMasteryContainer,
+                        containerColor = MaterialTheme.colorScheme.primaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
                         border = false,
                         modifier = Modifier.fillMaxWidth(),
                     ) {
@@ -152,6 +154,12 @@ fun MyDataScreen(
                                 selected = state.retentionDays == days,
                                 onClick = { onSetRetention(days) },
                                 label = { Text(if (days == 365) "1 year" else "$days days") },
+                                leadingIcon = if (state.retentionDays == days) {
+                                    { Icon(Icons.Outlined.Check, contentDescription = null, modifier = Modifier.size(18.dp)) }
+                                } else {
+                                    null
+                                },
+                                modifier = Modifier.heightIn(min = 48.dp),
                             )
                         }
                     }
@@ -167,24 +175,34 @@ fun MyDataScreen(
                 if (state.topics.isEmpty()) {
                     item { Text("No topics stored.", style = MaterialTheme.typography.bodyMedium) }
                 }
-                items(state.topics, key = { it.id }) { topic ->
-                    ListItem(
-                        colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-                        leadingContent = {
-                            val subject = SubjectArt.colors(topic.title)
-                            Box(
-                                contentAlignment = Alignment.Center,
-                                modifier = Modifier.size(40.dp).clip(RoundedCornerShape(12.dp)).background(subject.container),
-                            ) { Icon(SubjectArt.icon(topic.title), null, tint = subject.content, modifier = Modifier.size(20.dp)) }
-                        },
-                        headlineContent = { Text(topic.title) },
-                        supportingContent = { Text("${topic.attempts} answers") },
-                        trailingContent = {
-                            IconButton(onClick = { topicToDelete = topic }) {
-                                Icon(Icons.Outlined.DeleteOutline, contentDescription = "Delete ${topic.title}")
-                            }
-                        },
-                    )
+                item {
+                    // One grouped card; topics with no answers have nothing personal to delete.
+                    PrimoriaCard(Modifier.fillMaxWidth(), contentPadding = 4.dp) {
+                        state.topics.forEachIndexed { index, topic ->
+                            if (index > 0) HorizontalDivider(color = PrimoriaTheme.colors.hairline, modifier = Modifier.padding(horizontal = 16.dp))
+                            ListItem(
+                                colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                                leadingContent = {
+                                    val subject = SubjectArt.colors(topic.title)
+                                    Box(
+                                        contentAlignment = Alignment.Center,
+                                        modifier = Modifier.size(40.dp).clip(RoundedCornerShape(12.dp)).background(subject.container),
+                                    ) { Icon(SubjectArt.icon(topic.title), null, tint = subject.content, modifier = Modifier.size(20.dp)) }
+                                },
+                                headlineContent = { Text(topic.title, style = MaterialTheme.typography.titleSmall) },
+                                supportingContent = {
+                                    Text(if (topic.attempts == 0) "No answers yet" else "${topic.attempts} answers")
+                                },
+                                trailingContent = {
+                                    if (topic.attempts > 0) {
+                                        IconButton(onClick = { topicToDelete = topic }) {
+                                            Icon(Icons.Outlined.DeleteOutline, contentDescription = "Delete ${topic.title}")
+                                        }
+                                    }
+                                },
+                            )
+                        }
+                    }
                 }
                 item {
                     Button(

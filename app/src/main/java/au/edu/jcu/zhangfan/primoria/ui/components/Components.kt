@@ -57,8 +57,8 @@ fun EmptyState(
 }
 
 /**
- * One pill per question: answered ones in teal, the current one in indigo, the rest as track.
- * No timer, just "where am I".
+ * One pill per question: answered ones in indigo, the current one lighter, the rest as track.
+ * Correctness is never shown here, and there is no timer — just "where am I".
  */
 @Composable
 fun SegmentedProgress(total: Int, current: Int, answered: Int, modifier: Modifier = Modifier) {
@@ -70,8 +70,8 @@ fun SegmentedProgress(total: Int, current: Int, answered: Int, modifier: Modifie
     ) {
         repeat(total) { index ->
             val target = when {
-                index < answered -> PrimoriaTheme.colors.mastery
-                index == current -> MaterialTheme.colorScheme.primary
+                index < answered -> MaterialTheme.colorScheme.primary
+                index == current -> MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)
                 else -> MaterialTheme.colorScheme.surfaceContainerHighest
             }
             val color by animateColorAsState(target, label = "segment")
@@ -86,7 +86,7 @@ fun SegmentedProgress(total: Int, current: Int, answered: Int, modifier: Modifie
     }
 }
 
-/** Compact KPI tile for the Progress bento grid. */
+/** Compact KPI tile for the Progress bento grid: icon badge beside a large tabular value. */
 @Composable
 fun StatTile(
     value: String,
@@ -96,13 +96,16 @@ fun StatTile(
     container: Color,
     modifier: Modifier = Modifier,
 ) {
-    PrimoriaCard(modifier = modifier, contentPadding = 16.dp) {
-        Box(
-            contentAlignment = Alignment.Center,
-            modifier = Modifier.size(36.dp).clip(RoundedCornerShape(12.dp)).background(container),
-        ) { Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(20.dp)) }
-        Spacer(Modifier.height(12.dp))
-        Text(value, style = MaterialTheme.typography.headlineLarge.tabular())
-        Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    PrimoriaCard(modifier = modifier, contentPadding = 14.dp) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier.size(40.dp).clip(RoundedCornerShape(12.dp)).background(container),
+            ) { Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(22.dp)) }
+            Column {
+                Text(value, style = MaterialTheme.typography.headlineSmall.tabular())
+                Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
     }
 }

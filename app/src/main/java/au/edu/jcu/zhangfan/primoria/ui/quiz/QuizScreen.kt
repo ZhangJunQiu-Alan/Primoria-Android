@@ -355,6 +355,8 @@ private fun ActiveQuiz(
                         capReached = state.dailyCapReached,
                         actionLabel = if (state.isLastQuestion) "See summary" else "Next question",
                         onNext = onNext,
+                        reported = state.question.id in state.reportedIds,
+                        onReport = { showReportSheet = true },
                     )
                 }
             }
@@ -462,6 +464,8 @@ private fun FeedbackPanel(
     capReached: Boolean,
     actionLabel: String,
     onNext: () -> Unit,
+    reported: Boolean,
+    onReport: () -> Unit,
 ) {
     val extended = PrimoriaTheme.colors
     val accent = if (feedback.correct) extended.mastery else MaterialTheme.colorScheme.error
@@ -501,11 +505,18 @@ private fun FeedbackPanel(
             }
             Text(question.explanation, style = MaterialTheme.typography.bodyLarge)
             if (question.source == ContentSource.AI_GENERATED) {
-                Text(
-                    "Explanation written by AI from the topic alone. If something looks wrong, tap Report.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        "Written by AI from the topic alone.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.weight(1f),
+                    )
+                    TextButton(onClick = onReport, enabled = !reported, modifier = Modifier.heightIn(min = 48.dp)) {
+                        Icon(Icons.Outlined.Flag, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Text(if (reported) "Reported" else "Report this", Modifier.padding(start = 6.dp))
+                    }
+                }
             }
             xpLine?.let {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -588,6 +599,7 @@ private fun QuizSummary(state: QuizUiState.Finished, onDone: () -> Unit, onPract
                 Text("Mastery", style = MaterialTheme.typography.labelLarge)
                 Spacer(Modifier.height(12.dp))
                 ProgressRing(
+                    modifier = Modifier.align(Alignment.CenterHorizontally),
                     progress = state.mastery.toFloat(),
                     colors = extended.masteryRing,
                     trackColor = extended.onMasteryContainer.copy(alpha = 0.12f),
@@ -595,7 +607,7 @@ private fun QuizSummary(state: QuizUiState.Finished, onDone: () -> Unit, onPract
                     strokeWidth = 9.dp,
                 ) { Text("${(state.mastery * 100).roundToInt()}%", style = MaterialTheme.typography.titleLarge.tabular()) }
                 Spacer(Modifier.height(12.dp))
-                MasteryBadge(state.masteryLevel)
+                MasteryBadge(state.masteryLevel, Modifier.align(Alignment.CenterHorizontally))
             }
             PrimoriaCard(containerColor = extended.effortContainer, contentColor = extended.onEffortContainer, border = false, modifier = Modifier.weight(1f).fillMaxHeight()) {
                 Text("Effort", style = MaterialTheme.typography.labelLarge)

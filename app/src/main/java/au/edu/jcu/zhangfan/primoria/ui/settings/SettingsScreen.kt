@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -127,7 +128,7 @@ fun SettingsScreen(
             ) {
                 Text("Settings", style = MaterialTheme.typography.headlineLarge, modifier = Modifier.padding(horizontal = 4.dp, vertical = 8.dp))
                 SettingsGroup("Learning") {
-                Text("Difficulty", style = MaterialTheme.typography.labelLarge)
+                Text("Difficulty", style = MaterialTheme.typography.titleSmall)
                 SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
                     Difficulty.entries.forEachIndexed { index, difficulty ->
                         SegmentedButton(
@@ -138,7 +139,7 @@ fun SettingsScreen(
                         ) { Text(difficulty.label) }
                     }
                 }
-                Text("Questions per quiz", style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(top = 8.dp))
+                Text("Questions per quiz", style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(top = 8.dp))
                 SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
                     QUIZ_LENGTHS.forEachIndexed { index, count ->
                         SegmentedButton(
@@ -164,6 +165,11 @@ fun SettingsScreen(
                     ),
                     modifier = Modifier.semantics { contentDescription = "Weekly goal in active days" },
                 )
+                Row(Modifier.fillMaxWidth()) {
+                    Text("1 day", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Spacer(Modifier.weight(1f))
+                    Text("7 days", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
                 Text(
                     "Choose a rhythm you can keep. Streak freezes cover busy weeks.",
                     style = MaterialTheme.typography.bodySmall,
@@ -206,7 +212,7 @@ fun SettingsScreen(
                         modifier = Modifier.semantics { contentDescription = "Reminder time" },
                     )
                 }
-                Text("Quiet hours start", style = MaterialTheme.typography.labelLarge)
+                Text("Quiet hours start", style = MaterialTheme.typography.titleSmall)
                 SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
                     QUIET_STARTS.forEachIndexed { index, hour ->
                         SegmentedButton(
@@ -225,7 +231,7 @@ fun SettingsScreen(
 
                 }
                 SettingsGroup("Appearance & accessibility") {
-                Text("Theme", style = MaterialTheme.typography.labelLarge)
+                Text("Theme", style = MaterialTheme.typography.titleSmall)
                 SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
                     ThemeMode.entries.forEachIndexed { index, mode ->
                         SegmentedButton(
@@ -251,7 +257,7 @@ fun SettingsScreen(
                     if (on && settings.ageGroup == AgeGroup.TEEN) confirmTeenAi = true
                     else onUpdate { it.copy(aiConsent = on) }
                 }
-                Text("Age band", style = MaterialTheme.typography.labelLarge)
+                Text("Age band", style = MaterialTheme.typography.titleSmall)
                 SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
                     AgeGroup.entries.forEachIndexed { index, group ->
                         SegmentedButton(
@@ -371,7 +377,7 @@ private fun SwitchRow(
             .testTag(testTag),
     ) {
         Column(Modifier.weight(1f).padding(end = 16.dp)) {
-            Text(title, style = MaterialTheme.typography.bodyLarge)
+            Text(title, style = MaterialTheme.typography.titleMedium)
             Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         Switch(checked = checked, onCheckedChange = null)

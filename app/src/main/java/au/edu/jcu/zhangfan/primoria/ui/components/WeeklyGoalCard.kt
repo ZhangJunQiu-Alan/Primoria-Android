@@ -27,9 +27,13 @@ object WeeklyGoalCopy {
         return if (streak.goalMetThisWeek) "Weekly goal reached" else "$done of ${streak.weeklyGoal} days this week"
     }
 
-    fun streakLine(streak: StreakSummary): String = when (streak.weeks) {
-        0 -> "Your first goal week starts whenever you're ready"
-        1 -> "1 goal week so far"
+    fun streakLine(streak: StreakSummary): String = when {
+        streak.weeks == 0 && streak.activeDaysThisWeek == 0 -> "Your first goal week starts whenever you're ready"
+        streak.weeks == 0 -> {
+            val left = streak.weeklyGoal - streak.activeDaysThisWeek
+            "$left more ${if (left == 1) "day" else "days"} completes your first goal week"
+        }
+        streak.weeks == 1 -> "1 goal week so far"
         else -> "${streak.weeks} goal weeks in a row"
     }
 

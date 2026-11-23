@@ -25,6 +25,8 @@ import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.Insights
 import androidx.compose.material.icons.outlined.School
 import androidx.compose.material.icons.outlined.TaskAlt
+import androidx.compose.material.icons.outlined.TrendingUp
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -110,7 +112,7 @@ private fun StatsContent(stats: LearningStats, onTopicClick: (TopicSummary) -> U
                     )
                     StatTile(
                         "${stats.streak.weeks}", if (stats.streak.weeks == 1) "Goal week" else "Goal weeks in a row",
-                        Icons.Outlined.CalendarMonth, colors.effort, colors.effortContainer,
+                        Icons.Outlined.CalendarMonth, MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.primaryContainer,
                         Modifier.weight(1f),
                     )
                 }
@@ -172,18 +174,18 @@ private fun RingsCard(averageMastery: Double, stats: LearningStats) {
                 trackColor = MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.6f),
             )
             Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                RingLegend(colors.mastery, "Mastery", "$masteryPercent%", "average across topics")
-                RingLegend(colors.effort, "Effort today", "${stats.xpToday} XP", "of ${stats.dailyXpCap} daily limit")
+                RingLegend(Icons.Outlined.TrendingUp, colors.mastery, "Outer ring · Mastery", "$masteryPercent%", "average across topics")
+                RingLegend(Icons.Outlined.Bolt, colors.effort, "Inner ring · Effort today", "${stats.xpToday} XP", "of ${stats.dailyXpCap} daily limit")
             }
         }
     }
 }
 
 @Composable
-private fun RingLegend(color: Color, label: String, value: String, caption: String) {
+private fun RingLegend(icon: ImageVector, color: Color, label: String, value: String, caption: String) {
     Column {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.size(10.dp).clip(CircleShape).background(color))
+            Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(16.dp))
             Text(label, style = MaterialTheme.typography.labelMedium, modifier = Modifier.padding(start = 6.dp))
         }
         Text(value, style = MaterialTheme.typography.headlineLarge.tabular())

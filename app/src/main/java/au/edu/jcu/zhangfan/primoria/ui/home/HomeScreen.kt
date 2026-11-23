@@ -36,7 +36,6 @@ import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.Bolt
 import androidx.compose.material.icons.outlined.Clear
 import androidx.compose.material.icons.outlined.CloudOff
-import androidx.compose.material.icons.outlined.OfflinePin
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -53,6 +52,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.testTag
@@ -60,6 +61,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -153,8 +155,13 @@ fun HomeScreen(
                                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                                 contentPadding = PaddingValues(horizontal = 16.dp),
                             ) {
+                                val single = state.recentTopics.size == 1
                                 items(state.recentTopics, key = { it.id }) { topic ->
-                                    TopicCard(topic, onClick = { onPickTopic(topic.title) })
+                                    TopicCard(
+                                        topic,
+                                        onClick = { onPickTopic(topic.title) },
+                                        modifier = if (single) Modifier.fillParentMaxWidth() else Modifier.width(220.dp),
+                                    )
                                 }
                             }
                         }
@@ -203,11 +210,18 @@ private fun greetingFor(time: LocalTime): String = when (time.hour) {
 @Composable
 private fun HeroHeader(state: HomeUiState, greeting: String, onOpenStats: () -> Unit, onOpenSettings: () -> Unit) {
     val colors = PrimoriaTheme.colors
+    val fade = MaterialTheme.colorScheme.background
     Box(
         Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(bottomStart = 32.dp, bottomEnd = 32.dp))
             .gradientBackground(colors.heroGradient)
+            // Fade the wash into the page so the prompt bar floats over a soft edge, not a seam.
+            .drawWithContent {
+                drawContent()
+                drawRect(
+                    Brush.verticalGradient(listOf(Color.Transparent, fade), startY = size.height - 110.dp.toPx(), endY = size.height),
+                )
+            }
             .windowInsetsPadding(WindowInsets.statusBars)
             .padding(start = 20.dp, end = 20.dp, top = 16.dp, bottom = 64.dp),
     ) {
@@ -333,51 +347,43 @@ private fun PromptBar(
 }
 
 @Composable
-private fun TopicCard(topic: TopicSummary, onClick: () -> Unit) {
+private fun TopicCard(topic: TopicSummary, onClick: () -> Unit, modifier: Modifier = Modifier) {
     val subject = SubjectArt.colors(topic.title)
     val progress = animatedProgress(topic.mastery.toFloat())
-    PrimoriaCard(
-        onClick = onClick,
-        shape = RoundedCornerShape(22.dp),
-        containerColor = subject.container,
-        contentColor = subject.content,
-        border = false,
-        contentPadding = 0.dp,
-        modifier = Modifier.width(176.dp).height(188.dp),
-    ) {
-        Box(Modifier.fillMaxSize()) {
-            Icon(
-                SubjectArt.icon(topic.title),
-                contentDescription = null,
-                tint = subject.content.copy(alpha = 0.14f),
-                modifier = Modifier.size(96.dp).align(Alignment.TopEnd).offset(x = 18.dp, y = (-10).dp),
-            )
-            Column(Modifier.padding(16.dp).fillMaxSize(), verticalArrangement = Arrangement.SpaceBetween) {
-                Icon(SubjectArt.icon(topic.title), contentDescription = null, modifier = Modifier.size(26.dp))
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(topic.title, style = MaterialTheme.typography.titleLarge, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                    MasteryBadge(topic.masteryLevel)
-                    Box(
-                        Modifier
-                            .fillMaxWidth()
-                            .height(5.dp)
-                            .clip(RoundedCornerShape(999.dp))
-                            .background(subject.content.copy(alpha = 0.15f)),
-                    ) {
-                        Box(
-                            Modifier
-                                .fillMaxWidth(progress)
-                                .height(5.dp)
-                                .clip(RoundedCornerShape(999.dp))
-                                .background(PrimoriaTheme.colors.mastery),
-                        )
-                    }
-                    Text(
-                        "${(topic.accuracy * 100).roundToInt()}% correct · ${topic.attempts} answers",
-                        style = MaterialTheme.typography.labelSmall.tabular(),
-                    )
-                }
+    PrimoriaCard(onClick = onClick, shape = RoundedCornerShape(22.dp), contentPadding = 16.dp, modifier = modifier) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier.size(44.dp).clip(RoundedCornerShape(14.dp)).background(subject.container),
+            ) { Icon(SubjectArt.icon(topic.title), null, tint = subject.content, modifier = Modifier.size(22.dp)) }
+            Column(Modifier.weight(1f)) {
+                Text(topic.title, style = MaterialTheme.typography.titleLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(
+                    "${(topic.accuracy * 100).roundToInt()}% correct · ${topic.attempts} answers",
+                    style = MaterialTheme.typography.bodySmall.tabular(),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
+        }
+        Spacer(Modifier.height(14.dp))
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            MasteryBadge(topic.masteryLevel)
+            Box(
+                Modifier
+                    .weight(1f)
+                    .height(6.dp)
+                    .clip(RoundedCornerShape(999.dp))
+                    .background(MaterialTheme.colorScheme.surfaceContainerHigh),
+            ) {
+                Box(
+                    Modifier
+                        .fillMaxWidth(progress)
+                        .height(6.dp)
+                        .clip(RoundedCornerShape(999.dp))
+                        .background(PrimoriaTheme.colors.mastery),
+                )
+            }
+            Text("${(topic.mastery * 100).roundToInt()}%", style = MaterialTheme.typography.labelLarge.tabular(), color = PrimoriaTheme.colors.mastery)
         }
     }
 }
@@ -391,32 +397,17 @@ private fun LibraryTile(title: String, onClick: () -> Unit, modifier: Modifier =
         containerColor = subject.container,
         contentColor = subject.content,
         border = false,
-        contentPadding = 0.dp,
-        modifier = modifier.height(128.dp),
+        contentPadding = 16.dp,
+        modifier = modifier.height(116.dp),
     ) {
-        Box(Modifier.fillMaxSize()) {
-            Icon(
-                SubjectArt.icon(title),
-                contentDescription = null,
-                tint = subject.content.copy(alpha = 0.12f),
-                modifier = Modifier.size(84.dp).align(Alignment.BottomEnd).offset(x = 14.dp, y = 14.dp),
-            )
-            Column(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.SpaceBetween) {
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = Modifier
-                        .size(36.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(PrimoriaTheme.colors.cardSurface.copy(alpha = 0.75f)),
-                ) { Icon(SubjectArt.icon(title), null, modifier = Modifier.size(20.dp)) }
-                Column {
-                    Text(title, style = MaterialTheme.typography.titleMedium, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Outlined.OfflinePin, null, modifier = Modifier.size(12.dp))
-                        Text(" Works offline", style = MaterialTheme.typography.labelSmall)
-                    }
-                }
-            }
-        }
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier
+                .size(36.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .background(PrimoriaTheme.colors.cardSurface.copy(alpha = 0.75f)),
+        ) { Icon(SubjectArt.icon(title), null, modifier = Modifier.size(20.dp)) }
+        Spacer(Modifier.weight(1f))
+        Text(title, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold), maxLines = 2, overflow = TextOverflow.Ellipsis)
     }
 }

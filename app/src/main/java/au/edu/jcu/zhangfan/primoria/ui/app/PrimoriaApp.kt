@@ -1,11 +1,13 @@
 package au.edu.jcu.zhangfan.primoria.ui.app
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.MaterialTheme
@@ -72,8 +74,9 @@ private fun ReadyApp(onboardingComplete: Boolean, widthSizeClass: WindowWidthSiz
     Scaffold(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         bottomBar = {
-            if (showNavigation && !useRail) {
-                NavigationBar {
+            if (showNavigation && !useRail) Column {
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                NavigationBar(containerColor = MaterialTheme.colorScheme.surfaceContainerLow) {
                     TopLevelDestination.entries.forEach { destination ->
                         val selected = currentDestination.isOn(destination)
                         NavigationBarItem(
