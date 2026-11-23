@@ -47,7 +47,7 @@ fun WeeklyGoalCard(streak: StreakSummary, modifier: Modifier = Modifier) {
         colors = CardDefaults.outlinedCardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
         modifier = modifier
             .fillMaxWidth()
-            .clearAndSetSemantics { contentDescription = "$headline. $streakText. $freezeText." },
+            .clearAndSetSemantics { contentDescription = listOf(headline, streakText, freezeText).joinToString(" ") { it.trimEnd('.') + "." } },
     ) {
         Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {

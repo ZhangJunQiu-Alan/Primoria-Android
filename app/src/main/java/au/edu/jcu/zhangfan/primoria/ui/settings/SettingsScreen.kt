@@ -96,6 +96,7 @@ fun SettingsScreen(
                             selected = settings.difficulty == difficulty,
                             onClick = { onUpdate { it.copy(difficulty = difficulty) } },
                             shape = SegmentedButtonDefaults.itemShape(index, Difficulty.entries.size),
+                            colors = segmentedColors(),
                         ) { Text(difficulty.label) }
                     }
                 }
@@ -106,6 +107,7 @@ fun SettingsScreen(
                             selected = settings.questionsPerQuiz == count,
                             onClick = { onUpdate { it.copy(questionsPerQuiz = count) } },
                             shape = SegmentedButtonDefaults.itemShape(index, QUIZ_LENGTHS.size),
+                            colors = segmentedColors(),
                         ) { Text("$count") }
                     }
                 }
@@ -145,6 +147,7 @@ fun SettingsScreen(
                             selected = settings.themeMode == mode,
                             onClick = { onUpdate { it.copy(themeMode = mode) } },
                             shape = SegmentedButtonDefaults.itemShape(index, ThemeMode.entries.size),
+                            colors = segmentedColors(),
                         ) { Text(mode.name.lowercase().replaceFirstChar(Char::uppercase)) }
                     }
                 }
@@ -173,6 +176,7 @@ fun SettingsScreen(
                                 onUpdate { it.copy(ageGroup = group, aiConsent = it.aiConsent && group == AgeGroup.ADULT) }
                             },
                             shape = SegmentedButtonDefaults.itemShape(index, AgeGroup.entries.size),
+                            colors = segmentedColors(),
                         ) { Text(group.label) }
                     }
                 }
@@ -240,6 +244,13 @@ fun SettingsScreen(
 }
 
 private val QUIZ_LENGTHS = listOf(5, 10)
+
+/** Selected segments use the primary role; amber is reserved for effort and XP. */
+@Composable
+private fun segmentedColors() = SegmentedButtonDefaults.colors(
+    activeContainerColor = MaterialTheme.colorScheme.primaryContainer,
+    activeContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+)
 
 @Composable
 private fun SwitchRow(

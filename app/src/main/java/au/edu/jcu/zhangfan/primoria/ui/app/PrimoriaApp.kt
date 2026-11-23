@@ -7,9 +7,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.NavigationRail
 import androidx.compose.material3.NavigationRailItem
+import androidx.compose.material3.NavigationRailItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
@@ -75,6 +78,9 @@ private fun ReadyApp(onboardingComplete: Boolean, widthSizeClass: WindowWidthSiz
                             onClick = { navController.navigateToTopLevel(destination) },
                             icon = { Icon(if (selected) destination.selectedIcon else destination.unselectedIcon, null) },
                             label = { Text(destination.label) },
+                            colors = NavigationBarItemDefaults.colors(
+                                indicatorColor = MaterialTheme.colorScheme.primaryContainer,
+                            ),
                         )
                     }
                 }
@@ -91,6 +97,9 @@ private fun ReadyApp(onboardingComplete: Boolean, widthSizeClass: WindowWidthSiz
                             onClick = { navController.navigateToTopLevel(destination) },
                             icon = { Icon(if (selected) destination.selectedIcon else destination.unselectedIcon, null) },
                             label = { Text(destination.label) },
+                            colors = NavigationRailItemDefaults.colors(
+                                indicatorColor = MaterialTheme.colorScheme.primaryContainer,
+                            ),
                         )
                     }
                 }

@@ -130,7 +130,8 @@ private fun StatsContent(stats: LearningStats, onTopicClick: (TopicSummary) -> U
                     Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Text("${(stats.accuracy * 100).roundToInt()}% accuracy", style = MaterialTheme.typography.headlineSmall)
                         Text(
-                            "${stats.totalAnswers} answers across ${stats.studiedTopics.size} topics. " +
+                            "${stats.totalAnswers} answers across ${stats.studiedTopics.size} " +
+                                (if (stats.studiedTopics.size == 1) "topic. " else "topics. ") +
                                 "Mastery is tracked separately from XP: it reflects what you know.",
                             style = MaterialTheme.typography.bodyMedium,
                         )
