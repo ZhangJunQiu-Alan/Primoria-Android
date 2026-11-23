@@ -45,6 +45,8 @@ data class AnswerResult(
     val correct: Boolean,
     val xpAwarded: Int,
     val mastery: Double,
+    /** All answers ever given for this topic, used to judge how much evidence the mastery has. */
+    val topicAttempts: Int,
     val dailyCapReached: Boolean,
 )
 
@@ -184,6 +186,7 @@ class DefaultLearningRepository @Inject constructor(
                 correct = correct,
                 xpAwarded = xp,
                 mastery = mastery,
+                topicAttempts = (previous?.attempts ?: 0) + 1,
                 dailyCapReached = xpToday + xp >= XpPolicy.DAILY_CAP,
             )
         }

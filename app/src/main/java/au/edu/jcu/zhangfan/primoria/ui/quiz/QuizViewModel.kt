@@ -34,9 +34,11 @@ sealed interface QuizUiState {
         val correctCount: Int = 0,
         val xpEarned: Int = 0,
         val mastery: Double = 0.0,
+        val topicAttempts: Int = 0,
         val dailyCapReached: Boolean = false,
         val reportedIds: Set<Long> = emptySet(),
         val submitting: Boolean = false,
+        val hapticsEnabled: Boolean = false,
     ) : QuizUiState {
         val question: QuizQuestion get() = questions[index]
         val isLastQuestion: Boolean get() = index == questions.lastIndex
@@ -69,7 +71,6 @@ class QuizViewModel @Inject constructor(
     /** Read by key rather than `toRoute()` so the ViewModel can be unit-tested without Android. */
     private val topic: String = savedStateHandle.get<String>(TOPIC_ARG).orEmpty()
     private val sessionId = UUID.randomUUID().toString()
-    private var answeredCount = 0
 
     private val _uiState = MutableStateFlow<QuizUiState>(QuizUiState.Loading)
     val uiState: StateFlow<QuizUiState> = _uiState.asStateFlow()
@@ -87,6 +88,7 @@ class QuizViewModel @Inject constructor(
                     topicTitle = result.topicTitle,
                     questions = result.questions,
                     notice = result.notice,
+                    hapticsEnabled = settings.haptics,
                 )
                 is QuizLoadResult.Refused -> QuizUiState.Refused(result.reason)
                 is QuizLoadResult.Unavailable -> QuizUiState.Unavailable(result.message)
@@ -107,7 +109,6 @@ class QuizViewModel @Inject constructor(
 
         viewModelScope.launch {
             val result = learningRepository.submitAnswer(state.question, chosen, sessionId)
-            answeredCount++
             if (settingsRepository.settings.first().soundEffects) soundEffects.playAnswer(result.correct)
             updateActive {
                 it.copy(
@@ -116,6 +117,7 @@ class QuizViewModel @Inject constructor(
                     correctCount = it.correctCount + if (result.correct) 1 else 0,
                     xpEarned = it.xpEarned + result.xpAwarded,
                     mastery = result.mastery,
+                    topicAttempts = result.topicAttempts,
                     dailyCapReached = result.dailyCapReached,
                 )
             }
@@ -132,7 +134,7 @@ class QuizViewModel @Inject constructor(
                 correct = state.correctCount,
                 xpEarned = state.xpEarned,
                 mastery = state.mastery,
-                masteryLevel = MasteryLevel.of(state.mastery, answeredCount),
+                masteryLevel = MasteryLevel.of(state.mastery, state.topicAttempts),
                 dailyCapReached = state.dailyCapReached,
             )
         } else {
