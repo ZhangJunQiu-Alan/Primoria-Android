@@ -28,6 +28,7 @@ import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -137,7 +138,8 @@ fun HomeScreen(
                                 Icon(Icons.Outlined.AutoAwesome, contentDescription = null)
                                 Text("Start a quiz", Modifier.padding(start = 8.dp))
                             }
-                            Text(
+                            // Hidden until settings load, so the hint never shows the wrong AI state.
+                            if (!state.loading) Text(
                                 text = if (state.aiEnabled) {
                                     "AI writes new questions for any topic. Only the topic is sent to DeepSeek."
                                 } else {
@@ -166,8 +168,13 @@ fun HomeScreen(
                     }
                 }
 
+                if (state.loading) {
+                    item { LinearProgressIndicator(Modifier.fillMaxWidth()) }
+                }
                 item { SectionHeader("Continue learning") }
-                if (state.recentTopics.isEmpty()) {
+                if (state.loading) {
+                    // Nothing yet: avoid flashing a misleading empty state.
+                } else if (state.recentTopics.isEmpty()) {
                     item {
                         Card(
                             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),

@@ -27,6 +27,7 @@ import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -121,6 +122,9 @@ fun SettingsScreen(
                     onValueChange = { value -> onUpdate { it.copy(weeklyGoalDays = value.toInt()) } },
                     valueRange = 1f..7f,
                     steps = 5,
+                    colors = SliderDefaults.colors(
+                        inactiveTrackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                    ),
                     modifier = Modifier.semantics { contentDescription = "Weekly goal in active days" },
                 )
                 Text(

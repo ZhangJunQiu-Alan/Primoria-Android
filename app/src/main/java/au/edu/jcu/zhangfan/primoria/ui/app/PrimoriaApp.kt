@@ -80,6 +80,7 @@ private fun ReadyApp(onboardingComplete: Boolean, widthSizeClass: WindowWidthSiz
                             label = { Text(destination.label) },
                             colors = NavigationBarItemDefaults.colors(
                                 indicatorColor = MaterialTheme.colorScheme.primaryContainer,
+                                selectedIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
                             ),
                         )
                     }
@@ -99,6 +100,7 @@ private fun ReadyApp(onboardingComplete: Boolean, widthSizeClass: WindowWidthSiz
                             label = { Text(destination.label) },
                             colors = NavigationRailItemDefaults.colors(
                                 indicatorColor = MaterialTheme.colorScheme.primaryContainer,
+                                selectedIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
                             ),
                         )
                     }
