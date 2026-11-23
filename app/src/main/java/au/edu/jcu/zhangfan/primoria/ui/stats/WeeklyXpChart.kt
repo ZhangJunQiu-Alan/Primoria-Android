@@ -6,49 +6,70 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import au.edu.jcu.zhangfan.primoria.data.repository.DayActivity
+import au.edu.jcu.zhangfan.primoria.ui.components.animatedProgress
+import au.edu.jcu.zhangfan.primoria.ui.theme.PrimoriaTheme
+import au.edu.jcu.zhangfan.primoria.ui.theme.tabular
 import java.time.format.TextStyle
 import java.util.Locale
 
-/** Seven-day XP bars drawn against the daily cap, with a spoken summary for TalkBack. */
+/** Seven capsule bars with gradient fills and value labels, drawn against the daily XP cap. */
 @Composable
 fun WeeklyXpChart(week: List<DayActivity>, dailyCap: Int, modifier: Modifier = Modifier) {
-    val barColor = MaterialTheme.colorScheme.secondary
-    val emptyColor = MaterialTheme.colorScheme.surfaceContainerHighest
+    val ring = PrimoriaTheme.colors.effortRing
+    val track = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.6f)
     val capColor = MaterialTheme.colorScheme.outline
+    val grow = animatedProgress(1f)
     val description = week.joinToString(separator = ". ", prefix = "XP over the last seven days: ") {
         "${it.date.dayOfWeek.getDisplayName(TextStyle.FULL, Locale.getDefault())} ${it.xp} XP"
     }
 
     Column(modifier.clearAndSetSemantics { contentDescription = description }) {
-        Canvas(Modifier.fillMaxWidth().height(140.dp)) {
+        Row(Modifier.fillMaxWidth()) {
+            week.forEach { day ->
+                Text(
+                    if (day.xp > 0) "${day.xp}" else "",
+                    style = MaterialTheme.typography.labelSmall.tabular(),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.weight(1f),
+                )
+            }
+        }
+        Canvas(Modifier.fillMaxWidth().height(116.dp)) {
             val slot = size.width / week.size
-            val barWidth = slot * 0.55f
+            val barWidth = minOf(slot * 0.5f, 28.dp.toPx())
             val maxValue = dailyCap.coerceAtLeast(1).toFloat()
-
+            val radius = CornerRadius(barWidth / 2, barWidth / 2)
             week.forEachIndexed { index, day ->
                 val left = index * slot + (slot - barWidth) / 2
-                // A thin placeholder keeps empty days visible without implying failure.
-                val fraction = (day.xp / maxValue).coerceIn(0f, 1f)
-                val barHeight = (size.height * fraction).coerceAtLeast(4.dp.toPx())
-                drawRoundRect(
-                    color = if (day.xp > 0) barColor else emptyColor,
-                    topLeft = Offset(left, size.height - barHeight),
-                    size = Size(barWidth, barHeight),
-                    cornerRadius = CornerRadius(6.dp.toPx()),
-                )
+                drawRoundRect(track, Offset(left, 0f), Size(barWidth, size.height), radius)
+                val fraction = (day.xp / maxValue).coerceIn(0f, 1f) * grow
+                if (fraction > 0f) {
+                    val height = (size.height * fraction).coerceAtLeast(barWidth)
+                    drawRoundRect(
+                        brush = Brush.verticalGradient(ring.reversed(), startY = size.height - height, endY = size.height),
+                        topLeft = Offset(left, size.height - height),
+                        size = Size(barWidth, height),
+                        cornerRadius = radius,
+                    )
+                }
             }
             drawLine(
                 color = capColor,
@@ -58,15 +79,17 @@ fun WeeklyXpChart(week: List<DayActivity>, dailyCap: Int, modifier: Modifier = M
                 pathEffect = PathEffect.dashPathEffect(floatArrayOf(8f, 8f)),
             )
         }
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceAround) {
-            week.forEach { day ->
+        Row(Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.SpaceAround) {
+            week.forEachIndexed { index, day ->
                 Text(
-                    day.date.dayOfWeek.getDisplayName(TextStyle.NARROW, Locale.getDefault()),
+                    day.date.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.getDefault()).take(2),
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = if (index == week.lastIndex) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
+                    modifier = Modifier.width(32.dp),
                 )
             }
         }
     }
 }
+

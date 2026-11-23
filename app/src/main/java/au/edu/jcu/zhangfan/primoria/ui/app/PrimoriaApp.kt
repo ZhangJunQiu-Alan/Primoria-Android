@@ -2,6 +2,7 @@ package au.edu.jcu.zhangfan.primoria.ui.app
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.CircularProgressIndicator
@@ -67,7 +68,9 @@ private fun ReadyApp(onboardingComplete: Boolean, widthSizeClass: WindowWidthSiz
     val showNavigation = TopLevelDestination.entries.any { currentDestination.isOn(it) }
     val useRail = widthSizeClass != WindowWidthSizeClass.Compact
 
+    // Screens handle their own status-bar insets so heroes can draw edge to edge.
     Scaffold(
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         bottomBar = {
             if (showNavigation && !useRail) {
                 NavigationBar {

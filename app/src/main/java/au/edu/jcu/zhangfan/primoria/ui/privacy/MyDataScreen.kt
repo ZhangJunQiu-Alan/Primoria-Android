@@ -1,5 +1,20 @@
 package au.edu.jcu.zhangfan.primoria.ui.privacy
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.outlined.VerifiedUser
+import androidx.compose.material3.ListItemDefaults
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import au.edu.jcu.zhangfan.primoria.ui.components.PrimoriaCard
+import au.edu.jcu.zhangfan.primoria.ui.components.SubjectArt
+import au.edu.jcu.zhangfan.primoria.ui.theme.PrimoriaTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -15,15 +30,12 @@ import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -85,8 +97,10 @@ fun MyDataScreen(
     }
 
     Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             TopAppBar(
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background),
                 title = { Text("My data") },
                 navigationIcon = {
                     IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = "Back") }
@@ -101,8 +115,15 @@ fun MyDataScreen(
                 modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
             ) {
                 item {
-                    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)) {
-                        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    PrimoriaCard(
+                        containerColor = PrimoriaTheme.colors.masteryContainer,
+                        contentColor = PrimoriaTheme.colors.onMasteryContainer,
+                        border = false,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Icon(Icons.Outlined.VerifiedUser, null, modifier = Modifier.size(28.dp))
+                        Spacer(Modifier.height(10.dp))
+                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                             Text("Your learning history stays on this device", style = MaterialTheme.typography.titleMedium)
                             Text(
                                 "No account, no ads, no analytics, and no cloud backup. DeepSeek only ever receives " +
@@ -114,8 +135,8 @@ fun MyDataScreen(
                 }
                 item {
                     state.counts?.let { counts ->
-                        OutlinedCard(Modifier.fillMaxWidth().testTag("data_counts")) {
-                            Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        PrimoriaCard(Modifier.fillMaxWidth().testTag("data_counts")) {
+                            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                                 Text("Stored right now", style = MaterialTheme.typography.titleSmall)
                                 Text("${counts.topics} topics · ${counts.questions} questions", style = MaterialTheme.typography.bodyMedium)
                                 Text("${counts.attempts} answers · ${counts.reports} reports", style = MaterialTheme.typography.bodyMedium)
@@ -148,6 +169,14 @@ fun MyDataScreen(
                 }
                 items(state.topics, key = { it.id }) { topic ->
                     ListItem(
+                        colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                        leadingContent = {
+                            val subject = SubjectArt.colors(topic.title)
+                            Box(
+                                contentAlignment = Alignment.Center,
+                                modifier = Modifier.size(40.dp).clip(RoundedCornerShape(12.dp)).background(subject.container),
+                            ) { Icon(SubjectArt.icon(topic.title), null, tint = subject.content, modifier = Modifier.size(20.dp)) }
+                        },
                         headlineContent = { Text(topic.title) },
                         supportingContent = { Text("${topic.attempts} answers") },
                         trailingContent = {

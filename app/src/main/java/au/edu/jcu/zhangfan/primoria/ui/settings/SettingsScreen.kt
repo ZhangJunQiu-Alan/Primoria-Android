@@ -1,7 +1,16 @@
 package au.edu.jcu.zhangfan.primoria.ui.settings
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -16,13 +25,12 @@ import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.Shield
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
+import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
@@ -31,14 +39,16 @@ import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.core.content.ContextCompat
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -53,6 +63,7 @@ import au.edu.jcu.zhangfan.primoria.domain.model.Difficulty
 import au.edu.jcu.zhangfan.primoria.domain.model.ThemeMode
 import au.edu.jcu.zhangfan.primoria.domain.model.UserSettings
 import au.edu.jcu.zhangfan.primoria.ui.components.ContentColumn
+import au.edu.jcu.zhangfan.primoria.ui.components.PrimoriaCard
 import au.edu.jcu.zhangfan.primoria.ui.components.SectionHeader
 
 @Composable
@@ -61,8 +72,28 @@ fun SettingsRoute(
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    var notificationsBlocked by rememberSaveable { mutableStateOf(false) }
+    // Commitment 02 — just-in-time permission: asked only when the learner turns reminders on.
+    val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        notificationsBlocked = !granted
+        if (granted) viewModel.setReminder(true)
+    }
+    val context = LocalContext.current
     SettingsScreen(
         state = state,
+        notificationsBlocked = notificationsBlocked,
+        onReminderChange = { enabled ->
+            val needsPermission = enabled && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) !=
+                PackageManager.PERMISSION_GRANTED
+            if (needsPermission) {
+                permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+            } else {
+                notificationsBlocked = false
+                viewModel.setReminder(enabled)
+            }
+        },
+        onReminderHourChange = { hour -> viewModel.setReminder(true, hour) },
         onUpdate = viewModel::update,
         onSaveKey = viewModel::saveApiKey,
         onClearKey = viewModel::clearApiKey,
@@ -74,6 +105,9 @@ fun SettingsRoute(
 @Composable
 fun SettingsScreen(
     state: SettingsUiState,
+    notificationsBlocked: Boolean,
+    onReminderChange: (Boolean) -> Unit,
+    onReminderHourChange: (Int) -> Unit,
     onUpdate: ((UserSettings) -> UserSettings) -> Unit,
     onSaveKey: (String) -> Unit,
     onClearKey: () -> Unit,
@@ -83,13 +117,16 @@ fun SettingsScreen(
     var confirmTeenAi by rememberSaveable { mutableStateOf(false) }
     var editingKey by rememberSaveable { mutableStateOf(false) }
 
-    Scaffold(topBar = { TopAppBar(title = { Text("Settings") }) }) { padding ->
-        ContentColumn(Modifier.padding(padding)) {
+    ContentColumn(Modifier.windowInsetsPadding(WindowInsets.statusBars)) {
             Column(
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(20.dp),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 24.dp),
             ) {
-                SectionHeader("Learning")
+                Text("Settings", style = MaterialTheme.typography.headlineLarge, modifier = Modifier.padding(horizontal = 4.dp, vertical = 8.dp))
+                SettingsGroup("Learning") {
                 Text("Difficulty", style = MaterialTheme.typography.labelLarge)
                 SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
                     Difficulty.entries.forEachIndexed { index, difficulty ->
@@ -133,8 +170,8 @@ fun SettingsScreen(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
 
-                HorizontalDivider(Modifier.padding(vertical = 8.dp))
-                SectionHeader("Feedback")
+                }
+                SettingsGroup("Feedback") {
                 SwitchRow("Sound effects", "A short tone after each answer.", settings.soundEffects) { on ->
                     onUpdate { it.copy(soundEffects = on) }
                 }
@@ -142,8 +179,52 @@ fun SettingsScreen(
                     onUpdate { it.copy(haptics = on) }
                 }
 
-                HorizontalDivider(Modifier.padding(vertical = 8.dp))
-                SectionHeader("Appearance & accessibility")
+                }
+                SettingsGroup("Reminders") {
+                SwitchRow(
+                    title = "Study reminder",
+                    subtitle = "Off by default. At most one a day, never in quiet hours, and none once you've studied.",
+                    checked = settings.reminderEnabled,
+                    testTag = "reminder_toggle",
+                    onCheckedChange = onReminderChange,
+                )
+                if (notificationsBlocked) {
+                    Text(
+                        "Notifications are blocked, so reminders stay off. You can allow them in system settings.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                }
+                if (settings.reminderEnabled) {
+                    Text("Remind me at ${hourLabel(settings.reminderHour)}", style = MaterialTheme.typography.labelLarge)
+                    Slider(
+                        value = settings.reminderHour.toFloat(),
+                        onValueChange = { onReminderHourChange(it.toInt()) },
+                        valueRange = 7f..20f,
+                        steps = 12,
+                        colors = SliderDefaults.colors(inactiveTrackColor = MaterialTheme.colorScheme.surfaceContainerHighest),
+                        modifier = Modifier.semantics { contentDescription = "Reminder time" },
+                    )
+                }
+                Text("Quiet hours start", style = MaterialTheme.typography.labelLarge)
+                SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+                    QUIET_STARTS.forEachIndexed { index, hour ->
+                        SegmentedButton(
+                            selected = settings.quietHoursStart == hour,
+                            onClick = { onUpdate { it.copy(quietHoursStart = hour) } },
+                            shape = SegmentedButtonDefaults.itemShape(index, QUIET_STARTS.size),
+                            colors = segmentedColors(),
+                        ) { Text(hourLabel(hour)) }
+                    }
+                }
+                Text(
+                    "Quiet from ${hourLabel(settings.quietHoursStart)} until ${hourLabel(settings.quietHoursEnd)}: Primoria never notifies you then.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+
+                }
+                SettingsGroup("Appearance & accessibility") {
                 Text("Theme", style = MaterialTheme.typography.labelLarge)
                 SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
                     ThemeMode.entries.forEachIndexed { index, mode ->
@@ -159,8 +240,8 @@ fun SettingsScreen(
                     onUpdate { it.copy(largeText = on) }
                 }
 
-                HorizontalDivider(Modifier.padding(vertical = 8.dp))
-                SectionHeader("AI & privacy")
+                }
+                SettingsGroup("AI & privacy") {
                 SwitchRow(
                     title = "AI-generated quizzes",
                     subtitle = "Sends only your topic, the difficulty and your age band to DeepSeek (servers in China).",
@@ -195,6 +276,7 @@ fun SettingsScreen(
                             },
                         )
                     },
+                    colors = ListItemDefaults.colors(containerColor = Color.Transparent),
                     trailingContent = {
                         if (state.keySource == KeySource.USER) {
                             TextButton(onClick = onClearKey) { Text("Remove") }
@@ -211,9 +293,10 @@ fun SettingsScreen(
                     modifier = Modifier
                         .toggleable(value = false, onValueChange = { onOpenMyData() }, role = Role.Button)
                         .testTag("open_my_data"),
+                    colors = ListItemDefaults.colors(containerColor = Color.Transparent),
                 )
+                }
             }
-        }
     }
 
     if (confirmTeenAi) {
@@ -247,7 +330,21 @@ fun SettingsScreen(
     }
 }
 
+/** A titled card grouping related settings, so the screen scans as a few calm blocks. */
+@Composable
+private fun SettingsGroup(title: String, content: @Composable ColumnScope.() -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        SectionHeader(title, Modifier.padding(horizontal = 4.dp))
+        PrimoriaCard(Modifier.fillMaxWidth(), contentPadding = 18.dp) {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp), content = content)
+        }
+    }
+}
+
 private val QUIZ_LENGTHS = listOf(5, 10)
+private val QUIET_STARTS = listOf(20, 21, 22)
+
+private fun hourLabel(hour: Int): String = "%02d:00".format(hour)
 
 /** Selected segments use the primary role; amber is reserved for effort and XP. */
 @Composable
