@@ -29,7 +29,7 @@ android {
         versionCode = 1
         versionName = "1.0"
 
-        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        testInstrumentationRunner = "au.edu.jcu.zhangfan.primoria.HiltTestRunner"
 
         buildConfigField("String", "DEEPSEEK_API_KEY", "\"${envValue("DEEPSEEK_API_KEY")}\"")
         buildConfigField("String", "DEEPSEEK_BASE_URL", "\"${envValue("DEEPSEEK_BASE_URL", "https://api.deepseek.com/")}\"")
@@ -52,6 +52,10 @@ android {
     buildFeatures {
         compose = true
         buildConfig = true
+    }
+    sourceSets {
+        // Exported Room schemas let MigrationTestHelper verify real migrations.
+        getByName("androidTest").assets.srcDir("$projectDir/schemas")
     }
     testOptions {
         unitTests.isReturnDefaultValues = true
@@ -97,6 +101,9 @@ dependencies {
     ksp(libs.androidx.room.compiler)
     implementation(libs.androidx.datastore.preferences)
 
+    // Opt-in daily study reminder
+    implementation(libs.androidx.work.runtime)
+
     // Networking
     implementation(libs.retrofit)
     implementation(libs.retrofit.kotlinx.serialization)
@@ -109,9 +116,13 @@ dependencies {
 
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.test.runner)
+    // Espresso 3.6+ is required by Compose UI tests on API 34+ (older versions call a removed InputManager API).
+    androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(libs.kotlinx.coroutines.test)
     androidTestImplementation(libs.androidx.room.testing)
     androidTestImplementation(libs.androidx.navigation.testing)
+    androidTestImplementation(libs.hilt.android.testing)
+    kspAndroidTest(libs.hilt.compiler)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation(libs.androidx.ui.tooling)

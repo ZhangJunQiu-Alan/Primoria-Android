@@ -2,6 +2,7 @@ package au.edu.jcu.zhangfan.primoria.data.repository
 
 import au.edu.jcu.zhangfan.primoria.data.local.PrimoriaDatabase
 import au.edu.jcu.zhangfan.primoria.data.local.StoredDataCounts
+import au.edu.jcu.zhangfan.primoria.data.reminder.ReminderScheduler
 import au.edu.jcu.zhangfan.primoria.data.remote.ApiKeyProvider
 import au.edu.jcu.zhangfan.primoria.data.settings.SettingsRepository
 import au.edu.jcu.zhangfan.primoria.domain.logic.DataRetention
@@ -26,6 +27,7 @@ class DefaultPrivacyRepository @Inject constructor(
     private val settingsRepository: SettingsRepository,
     private val keyProvider: ApiKeyProvider,
     private val learningRepository: LearningRepository,
+    private val reminderScheduler: ReminderScheduler,
     private val clock: Clock,
     @Named("io") private val ioDispatcher: CoroutineDispatcher,
 ) : PrivacyRepository {
@@ -47,6 +49,7 @@ class DefaultPrivacyRepository @Inject constructor(
     override suspend fun deleteEverything() {
         withContext(ioDispatcher) { database.clearAllTables() }
         keyProvider.clearUserKey()
+        reminderScheduler.cancel()
         settingsRepository.reset()
         learningRepository.ensureLibrarySeeded()
     }

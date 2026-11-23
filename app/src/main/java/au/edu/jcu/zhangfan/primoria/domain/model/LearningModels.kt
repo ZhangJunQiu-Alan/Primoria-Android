@@ -77,6 +77,10 @@ data class UserSettings(
     val weeklyGoalDays: Int = 3,
     val quietHoursStart: Int = 21,
     val quietHoursEnd: Int = 7,
+    /** Reminders are opt-in: the notification permission is only requested when this is turned on. */
+    val reminderEnabled: Boolean = false,
+    val reminderHour: Int = 17,
+    val lastReminderEpochDay: Long? = null,
     val retentionDays: Int = 90,
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
     val largeText: Boolean = false,

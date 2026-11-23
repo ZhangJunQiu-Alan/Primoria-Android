@@ -2,6 +2,7 @@ package au.edu.jcu.zhangfan.primoria.ui.settings
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import au.edu.jcu.zhangfan.primoria.data.reminder.ReminderScheduler
 import au.edu.jcu.zhangfan.primoria.data.remote.ApiKeyProvider
 import au.edu.jcu.zhangfan.primoria.data.remote.KeySource
 import au.edu.jcu.zhangfan.primoria.data.settings.SettingsRepository
@@ -23,6 +24,7 @@ data class SettingsUiState(
 class SettingsViewModel @Inject constructor(
     private val settingsRepository: SettingsRepository,
     private val keyProvider: ApiKeyProvider,
+    private val reminderScheduler: ReminderScheduler,
 ) : ViewModel() {
 
     val uiState: StateFlow<SettingsUiState> = combine(
@@ -34,6 +36,14 @@ class SettingsViewModel @Inject constructor(
     /** One entry point for every preference keeps the screen simple and the logic testable. */
     fun update(transform: (UserSettings) -> UserSettings) {
         viewModelScope.launch { settingsRepository.update(transform) }
+    }
+
+    /** Called only after the notification permission was granted (or is not needed). */
+    fun setReminder(enabled: Boolean, hour: Int = uiState.value.settings.reminderHour) {
+        viewModelScope.launch {
+            settingsRepository.update { it.copy(reminderEnabled = enabled, reminderHour = hour) }
+            if (enabled) reminderScheduler.schedule(hour) else reminderScheduler.cancel()
+        }
     }
 
     fun saveApiKey(key: String) = keyProvider.saveUserKey(key)

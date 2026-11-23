@@ -6,6 +6,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import au.edu.jcu.zhangfan.primoria.domain.model.AgeGroup
 import au.edu.jcu.zhangfan.primoria.domain.model.Difficulty
@@ -54,6 +55,9 @@ class DataStoreSettingsRepository @Inject constructor(
             retentionDays = prefs[Keys.RETENTION_DAYS] ?: defaults.retentionDays,
             themeMode = enumOrDefault(prefs[Keys.THEME], defaults.themeMode),
             largeText = prefs[Keys.LARGE_TEXT] ?: defaults.largeText,
+            reminderEnabled = prefs[Keys.REMINDER_ENABLED] ?: defaults.reminderEnabled,
+            reminderHour = prefs[Keys.REMINDER_HOUR] ?: defaults.reminderHour,
+            lastReminderEpochDay = prefs[Keys.LAST_REMINDER_DAY],
         )
     }
 
@@ -71,6 +75,9 @@ class DataStoreSettingsRepository @Inject constructor(
         prefs[Keys.RETENTION_DAYS] = s.retentionDays
         prefs[Keys.THEME] = s.themeMode.name
         prefs[Keys.LARGE_TEXT] = s.largeText
+        prefs[Keys.REMINDER_ENABLED] = s.reminderEnabled
+        prefs[Keys.REMINDER_HOUR] = s.reminderHour
+        s.lastReminderEpochDay?.let { prefs[Keys.LAST_REMINDER_DAY] = it } ?: prefs.remove(Keys.LAST_REMINDER_DAY)
     }
 
     private inline fun <reified T : Enum<T>> enumOrDefault(name: String?, default: T): T =
@@ -90,5 +97,8 @@ class DataStoreSettingsRepository @Inject constructor(
         val RETENTION_DAYS = intPreferencesKey("retention_days")
         val THEME = stringPreferencesKey("theme_mode")
         val LARGE_TEXT = booleanPreferencesKey("large_text")
+        val REMINDER_ENABLED = booleanPreferencesKey("reminder_enabled")
+        val REMINDER_HOUR = intPreferencesKey("reminder_hour")
+        val LAST_REMINDER_DAY = longPreferencesKey("last_reminder_epoch_day")
     }
 }
