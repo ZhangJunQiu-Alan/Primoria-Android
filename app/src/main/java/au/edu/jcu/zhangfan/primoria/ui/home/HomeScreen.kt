@@ -115,7 +115,7 @@ fun HomeScreen(
     val listState = rememberLazyListState()
     val scrolledPastHero by remember { derivedStateOf { listState.firstVisibleItemIndex > 0 } }
     Box(Modifier.fillMaxSize()) {
-    ContentColumn(Modifier.fillMaxSize().imePadding()) {
+    Box(Modifier.fillMaxSize().imePadding()) {
         LazyColumn(
             state = listState,
             verticalArrangement = Arrangement.spacedBy(24.dp),
@@ -126,6 +126,7 @@ fun HomeScreen(
                 HeroHeader(state, greeting, onOpenStats, onOpenSettings)
             }
             item {
+                ContentColumn {
                 PromptBar(
                     topicInput = topicInput,
                     canStart = canStart,
@@ -135,11 +136,13 @@ fun HomeScreen(
                     onSubmit = onSubmitTopic,
                     modifier = Modifier.padding(horizontal = 16.dp).offset(y = (-40).dp),
                 )
+                }
             }
             if (state.loading) {
-                item { LinearProgressIndicator(Modifier.fillMaxWidth().padding(horizontal = 16.dp)) }
+                item { ContentColumn { LinearProgressIndicator(Modifier.fillMaxWidth().padding(horizontal = 16.dp)) } }
             } else {
                 item {
+                    ContentColumn {
                     Column(Modifier.offset(y = (-40).dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         SectionHeader("Continue learning", Modifier.padding(horizontal = 20.dp))
                         if (state.recentTopics.isEmpty()) {
@@ -160,14 +163,16 @@ fun HomeScreen(
                                     TopicCard(
                                         topic,
                                         onClick = { onPickTopic(topic.title) },
-                                        modifier = if (single) Modifier.fillParentMaxWidth() else Modifier.width(220.dp),
+                                        modifier = if (single) Modifier.fillParentMaxWidth() else Modifier.width(272.dp),
                                     )
                                 }
                             }
                         }
                     }
+                    }
                 }
                 item {
+                    ContentColumn {
                     Column(Modifier.offset(y = (-40).dp).padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         SectionHeader("Offline library", Modifier.padding(horizontal = 4.dp))
                         Text(
@@ -184,6 +189,7 @@ fun HomeScreen(
                                 if (pair.size == 1) Spacer(Modifier.weight(1f))
                             }
                         }
+                    }
                     }
                 }
             }
@@ -223,9 +229,10 @@ private fun HeroHeader(state: HomeUiState, greeting: String, onOpenStats: () -> 
                 )
             }
             .windowInsetsPadding(WindowInsets.statusBars)
-            .padding(start = 20.dp, end = 20.dp, top = 16.dp, bottom = 64.dp),
+            .padding(top = 16.dp, bottom = 64.dp),
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
+        ContentColumn {
+        Column(Modifier.padding(horizontal = 20.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text("Primoria", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.primary)
                 Spacer(Modifier.weight(1f))
@@ -266,6 +273,7 @@ private fun HeroHeader(state: HomeUiState, greeting: String, onOpenStats: () -> 
                     WeeklyGoalRow(streak, Modifier.padding(16.dp))
                 }
             }
+        }
         }
     }
 }
