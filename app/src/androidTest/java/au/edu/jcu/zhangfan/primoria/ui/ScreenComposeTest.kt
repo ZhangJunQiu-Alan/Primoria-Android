@@ -9,6 +9,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import au.edu.jcu.zhangfan.primoria.data.local.StoredDataCounts
 import au.edu.jcu.zhangfan.primoria.data.remote.KeySource
@@ -135,7 +136,7 @@ class ScreenComposeTest {
                 SettingsScreen(SettingsUiState(settings, KeySource.BUILD), false, {}, {}, { settings = it(settings) }, {}, {}, {})
             }
         }
-        compose.onNodeWithTag("settings_ai_toggle").performClick()
+        compose.onNodeWithTag("settings_ai_toggle").performScrollTo().performClick()
 
         compose.onNodeWithText("Turn on AI quizzes?").assertIsDisplayed()
         assertEquals(false, settings.aiConsent)

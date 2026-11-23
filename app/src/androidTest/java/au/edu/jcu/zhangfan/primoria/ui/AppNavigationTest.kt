@@ -2,12 +2,15 @@ package au.edu.jcu.zhangfan.primoria.ui
 
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasScrollAction
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextInput
 import au.edu.jcu.zhangfan.primoria.MainActivity
 import au.edu.jcu.zhangfan.primoria.testing.FakeDeepSeekApi
@@ -49,11 +52,12 @@ class AppNavigationTest {
         compose.onNodeWithTag("onboarding_continue").performClick()
         if (withAi) compose.onNodeWithTag("ai_consent_toggle").performClick()
         compose.onNodeWithText("Start learning").performClick()
-        compose.waitUntilAtLeastOneExists(hasText("What do you want to learn today?"), TIMEOUT)
+        compose.waitUntilAtLeastOneExists(hasTestTag("topic_input"), TIMEOUT)
     }
 
     @Test
     fun aiQuiz_fromHomeToSummaryAndProgress() {
+        fakeApi.reply = FakeDeepSeekApi.quizJson(5)
         completeOnboardingAsAdult(withAi = true)
 
         compose.onNodeWithTag("topic_input").performTextInput("Volcanoes")
@@ -81,8 +85,8 @@ class AppNavigationTest {
         completeOnboardingAsAdult(withAi = false)
 
         compose.onNodeWithText("Photosynthesis").performScrollTo().performClick()
-        compose.waitUntilAtLeastOneExists(hasText("Offline library"), TIMEOUT)
-        compose.onNodeWithText("Question 1 of 5").assertIsDisplayed()
+        compose.waitUntilAtLeastOneExists(hasText("Question 1 of 5"), TIMEOUT)
+        compose.onNodeWithText("Offline library").assertIsDisplayed()
 
         assertTrue(fakeApi.requests.isEmpty())
     }
@@ -93,8 +97,10 @@ class AppNavigationTest {
 
         compose.onNodeWithText("Settings").performClick()
         compose.onNodeWithTag("open_my_data").performScrollTo().performClick()
-        compose.waitUntilAtLeastOneExists(hasText("My data"), TIMEOUT)
-        compose.onNodeWithTag("delete_everything").performScrollTo().performClick()
+        compose.waitUntilAtLeastOneExists(hasText("Your learning history stays on this device"), TIMEOUT)
+        // The button is the last item of a lazy list, so scroll the list until it is composed.
+        compose.onNode(hasScrollAction()).performScrollToNode(hasTestTag("delete_everything"))
+        compose.onNodeWithTag("delete_everything").performClick()
         compose.onNodeWithTag("confirm_delete_everything").performClick()
 
         compose.waitUntilAtLeastOneExists(hasText("Welcome to Primoria"), TIMEOUT)
