@@ -27,7 +27,7 @@ data class MyDataUiState(
 class MyDataViewModel @Inject constructor(
     private val privacyRepository: PrivacyRepository,
     learningRepository: LearningRepository,
-    settingsRepository: SettingsRepository,
+    private val settingsRepository: SettingsRepository,
 ) : ViewModel() {
 
     private val counts = MutableStateFlow<StoredDataCounts?>(null)
@@ -57,6 +57,15 @@ class MyDataViewModel @Inject constructor(
     fun deleteEverything() {
         viewModelScope.launch {
             privacyRepository.deleteEverything()
+            refreshCounts()
+        }
+    }
+
+    fun setRetention(days: Int) {
+        viewModelScope.launch {
+            settingsRepository.update { it.copy(retentionDays = days) }
+            val removed = privacyRepository.applyRetention(days)
+            if (removed > 0) message.value = "Removed $removed answers older than $days days."
             refreshCounts()
         }
     }
