@@ -56,7 +56,12 @@ object NetworkModule {
 
     @Provides
     @Singleton
-    fun provideJson(): Json = Json { ignoreUnknownKeys = true; explicitNulls = false }
+    fun provideJson(): Json = Json {
+        ignoreUnknownKeys = true
+        explicitNulls = false
+        // Without this, defaults such as response_format = json_object are silently left out of requests.
+        encodeDefaults = true
+    }
 
     @Provides
     @Singleton
