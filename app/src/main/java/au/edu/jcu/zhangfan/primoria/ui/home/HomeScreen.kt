@@ -63,6 +63,8 @@ fun HomeRoute(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     HomeScreen(
         state = state,
+        topicInput = viewModel.topicInput,
+        canStart = viewModel.canStart,
         onTopicInputChange = viewModel::onTopicInputChange,
         onSubmitTopic = { viewModel.consumeTopic()?.let(onStartQuiz) },
         onPickTopic = onStartQuiz,
@@ -75,6 +77,8 @@ fun HomeRoute(
 @Composable
 fun HomeScreen(
     state: HomeUiState,
+    topicInput: String,
+    canStart: Boolean,
     onTopicInputChange: (String) -> Unit,
     onSubmitTopic: () -> Unit,
     onPickTopic: (String) -> Unit,
@@ -100,13 +104,13 @@ fun HomeScreen(
                         Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                             Text("What do you want to learn today?", style = MaterialTheme.typography.titleLarge)
                             OutlinedTextField(
-                                value = state.topicInput,
+                                value = topicInput,
                                 onValueChange = onTopicInputChange,
                                 label = { Text("Any topic") },
                                 placeholder = { Text("e.g. Photosynthesis, the French Revolution") },
                                 singleLine = true,
                                 trailingIcon = {
-                                    if (state.topicInput.isNotEmpty()) {
+                                    if (topicInput.isNotEmpty()) {
                                         IconButton(onClick = { onTopicInputChange("") }) {
                                             Icon(Icons.Outlined.Clear, contentDescription = "Clear topic")
                                         }
@@ -118,7 +122,7 @@ fun HomeScreen(
                                 ),
                                 keyboardActions = KeyboardActions(onGo = {
                                     focusManager.clearFocus()
-                                    if (state.canStart) onSubmitTopic()
+                                    if (canStart) onSubmitTopic()
                                 }),
                                 modifier = Modifier.fillMaxWidth().testTag("topic_input"),
                             )
@@ -127,7 +131,7 @@ fun HomeScreen(
                                     focusManager.clearFocus()
                                     onSubmitTopic()
                                 },
-                                enabled = state.canStart,
+                                enabled = canStart,
                                 modifier = Modifier.fillMaxWidth().testTag("start_quiz"),
                             ) {
                                 Icon(Icons.Outlined.AutoAwesome, contentDescription = null)

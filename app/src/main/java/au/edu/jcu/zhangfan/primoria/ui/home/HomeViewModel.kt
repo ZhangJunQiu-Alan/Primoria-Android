@@ -9,7 +9,9 @@ import au.edu.jcu.zhangfan.primoria.domain.logic.StreakSummary
 import au.edu.jcu.zhangfan.primoria.domain.logic.TopicNormalizer
 import au.edu.jcu.zhangfan.primoria.domain.model.TopicSummary
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.MutableStateFlow
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -18,16 +20,13 @@ import javax.inject.Inject
 
 data class HomeUiState(
     val loading: Boolean = true,
-    val topicInput: String = "",
     val aiEnabled: Boolean = false,
     val streak: StreakSummary? = null,
     val xpToday: Int = 0,
     val dailyXpCap: Int = 0,
     val recentTopics: List<TopicSummary> = emptyList(),
     val libraryTopics: List<String> = emptyList(),
-) {
-    val canStart: Boolean get() = TopicNormalizer.clean(topicInput) != null
-}
+)
 
 @HiltViewModel
 class HomeViewModel @Inject constructor(
@@ -36,17 +35,23 @@ class HomeViewModel @Inject constructor(
     settingsRepository: SettingsRepository,
 ) : ViewModel() {
 
-    private val topicInput = MutableStateFlow("")
+    /**
+     * Text-field state is held as Compose state and updated synchronously; routing it through
+     * an async Flow drops or reorders characters while the learner types.
+     */
+    var topicInput by mutableStateOf("")
+        private set
+
+    val canStart: Boolean get() = TopicNormalizer.clean(topicInput) != null
+
     private val libraryTitles = learningRepository.libraryTitles()
 
     val uiState: StateFlow<HomeUiState> = combine(
-        topicInput,
         progressRepository.observeStats(),
         settingsRepository.settings,
-    ) { input, stats, settings ->
+    ) { stats, settings ->
         HomeUiState(
             loading = false,
-            topicInput = input,
             aiEnabled = settings.aiConsent,
             streak = stats.streak,
             xpToday = stats.xpToday,
@@ -57,11 +62,11 @@ class HomeViewModel @Inject constructor(
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HomeUiState())
 
     fun onTopicInputChange(value: String) {
-        topicInput.value = value.take(TopicNormalizer.MAX_LENGTH)
+        topicInput = value.take(TopicNormalizer.MAX_LENGTH)
     }
 
     /** Returns the cleaned topic to open, or null when the input has no usable text. */
-    fun consumeTopic(): String? = TopicNormalizer.clean(topicInput.value)?.also { topicInput.value = "" }
+    fun consumeTopic(): String? = TopicNormalizer.clean(topicInput)?.also { topicInput = "" }
 
     private companion object {
         const val MAX_RECENT = 5
