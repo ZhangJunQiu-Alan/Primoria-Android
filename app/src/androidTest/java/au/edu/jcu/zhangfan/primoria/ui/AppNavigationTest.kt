@@ -1,0 +1,106 @@
+package au.edu.jcu.zhangfan.primoria.ui
+
+import androidx.compose.ui.test.ExperimentalTestApi
+import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performTextInput
+import au.edu.jcu.zhangfan.primoria.MainActivity
+import au.edu.jcu.zhangfan.primoria.testing.FakeDeepSeekApi
+import dagger.hilt.android.testing.HiltAndroidRule
+import dagger.hilt.android.testing.HiltAndroidTest
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
+import org.junit.Before
+import org.junit.Rule
+import org.junit.Test
+import javax.inject.Inject
+
+/**
+ * End-to-end navigation through the real app graph, with Hilt swapping in an in-memory
+ * database and a fake DeepSeek (see TestModules).
+ */
+@OptIn(ExperimentalTestApi::class)
+@HiltAndroidTest
+class AppNavigationTest {
+
+    @get:Rule(order = 0)
+    val hilt = HiltAndroidRule(this)
+
+    @get:Rule(order = 1)
+    val compose = createAndroidComposeRule<MainActivity>()
+
+    @Inject
+    lateinit var fakeApi: FakeDeepSeekApi
+
+    @Before
+    fun setUp() {
+        hilt.inject()
+    }
+
+    private fun completeOnboardingAsAdult(withAi: Boolean) {
+        compose.waitUntilAtLeastOneExists(hasText("Welcome to Primoria"), TIMEOUT)
+        compose.onNodeWithTag("onboarding_continue").performClick()
+        compose.onNodeWithText("18 or older").performClick()
+        compose.onNodeWithTag("onboarding_continue").performClick()
+        if (withAi) compose.onNodeWithTag("ai_consent_toggle").performClick()
+        compose.onNodeWithText("Start learning").performClick()
+        compose.waitUntilAtLeastOneExists(hasText("What do you want to learn today?"), TIMEOUT)
+    }
+
+    @Test
+    fun aiQuiz_fromHomeToSummaryAndProgress() {
+        completeOnboardingAsAdult(withAi = true)
+
+        compose.onNodeWithTag("topic_input").performTextInput("Volcanoes")
+        compose.onNodeWithTag("start_quiz").performClick()
+        compose.waitUntilAtLeastOneExists(hasText("Question 1 of 5"), TIMEOUT)
+        compose.onNodeWithText("AI-generated").assertIsDisplayed()
+
+        repeat(5) { index ->
+            compose.onNodeWithTag("option_A").performClick()
+            compose.onNodeWithTag("quiz_primary_action").performClick()
+            compose.waitUntilAtLeastOneExists(hasText(if (index == 4) "See summary" else "Next question"), TIMEOUT)
+            compose.onNodeWithTag("quiz_primary_action").performClick()
+        }
+        compose.waitUntilAtLeastOneExists(hasText("Quiz summary"), TIMEOUT)
+        compose.onNodeWithText("Done").performClick()
+
+        // Top-level destination switch through the bottom bar.
+        compose.onNodeWithText("Progress").performClick()
+        compose.waitUntilAtLeastOneExists(hasText("Your progress"), TIMEOUT)
+        assertEquals("Only one quiz request should reach DeepSeek", 1, fakeApi.requests.size)
+    }
+
+    @Test
+    fun withoutAiConsent_libraryQuizWorksAndDeepSeekIsNeverCalled() {
+        completeOnboardingAsAdult(withAi = false)
+
+        compose.onNodeWithText("Photosynthesis").performScrollTo().performClick()
+        compose.waitUntilAtLeastOneExists(hasText("Offline library"), TIMEOUT)
+        compose.onNodeWithText("Question 1 of 5").assertIsDisplayed()
+
+        assertTrue(fakeApi.requests.isEmpty())
+    }
+
+    @Test
+    fun deleteEverything_returnsToOnboarding() {
+        completeOnboardingAsAdult(withAi = false)
+
+        compose.onNodeWithText("Settings").performClick()
+        compose.onNodeWithTag("open_my_data").performScrollTo().performClick()
+        compose.waitUntilAtLeastOneExists(hasText("My data"), TIMEOUT)
+        compose.onNodeWithTag("delete_everything").performScrollTo().performClick()
+        compose.onNodeWithTag("confirm_delete_everything").performClick()
+
+        compose.waitUntilAtLeastOneExists(hasText("Welcome to Primoria"), TIMEOUT)
+    }
+
+    private companion object {
+        const val TIMEOUT = 10_000L
+    }
+}
