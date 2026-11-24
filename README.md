@@ -151,7 +151,7 @@ and DeepSeek always placing the correct answer first).
 ## Limitations and possible improvements
 * Questions are generated per quiz; there is no spaced-repetition scheduler yet.
 * Reports are stored locally only — there is no moderation back-end to send them to.
-* My Assessment 2 recommended that model keys stay on a server (ACS Ethics 2.2(h)). This version has no server, so a developer key from the git-ignored `.env` can be compiled into a **local** build. It is not in GitHub or the submitted zip, learners can use their own Keystore-encrypted key instead, and a production release should route requests through a small server-side proxy.
+* My Assessment 2 recommended that model keys stay on a server (ACS Ethics 2.2(h)). This version has no server, so a developer key from the git-ignored `.env` can be compiled into a **local** build. It is never in GitHub; the `.env` is included only in the private LearnJCU submission zip so markers can try AI quizzes on an emulator. Learners can use their own Keystore-encrypted key instead, and a production release should route requests through a small server-side proxy.
 * The offline library is small (6 topics × 6 questions).
 
 ## Acknowledgements and GenAI use
