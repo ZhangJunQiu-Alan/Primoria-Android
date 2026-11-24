@@ -29,7 +29,7 @@ CP3406 Assessment 2 presentation (*Designing for Trust: learner-data privacy and
 | Screen | What it does |
 |---|---|
 | **Onboarding** (3 steps) | Welcome, age band (13–17 / 18+), and privacy choices. AI generation is **opt-in** and explained in plain language; learners aged 13–17 also confirm that a parent or guardian knows. |
-| **Home** (landing) | Free-text topic box, weekly-goal card, "today's XP" shortcut, topics to continue (with mastery level), and a six-topic **offline library**. |
+| **Home** (landing) | "Continue learning" card with mastery level, a free-text topic box when AI is on (it becomes a search box for the offline library when AI is off), a compact six-topic **offline library**, a weekly-goal bar and a "today's XP" shortcut to Progress. |
 | **Quiz** (activity) | 5 or 10 questions, A–D options, *Check answer* → correct/incorrect shown with **icon + text + colour**, an explanation, XP feedback, an **AI-generated** label and a **Report** action on every question, and a summary that shows **effort and mastery as separate cards**. |
 | **Progress** (statistics) | Total XP, today's XP against the daily cap, a 7-day XP bar chart (with a spoken summary for TalkBack), weekly streak, overall accuracy and per-topic mastery (New → Developing → Secure → Mastered). |
 | **Settings** | Difficulty, quiz length, weekly goal, sound and vibration, opt-in study reminder with quiet hours, theme (system/light/dark), larger text, AI on/off, age band, optional personal DeepSeek key. |

@@ -2,6 +2,7 @@ package au.edu.jcu.zhangfan.primoria.ui
 
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
@@ -12,6 +13,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.test.performTextReplacement
 import au.edu.jcu.zhangfan.primoria.MainActivity
 import au.edu.jcu.zhangfan.primoria.testing.FakeDeepSeekApi
 import dagger.hilt.android.testing.HiltAndroidRule
@@ -73,6 +75,7 @@ class AppNavigationTest {
         }
         compose.waitUntilAtLeastOneExists(hasText("Quiz summary"), TIMEOUT)
         compose.onNodeWithText("Done").performClick()
+        compose.waitUntilAtLeastOneExists(hasText("Continue quiz"), TIMEOUT)
 
         // Top-level destination switch through the bottom bar.
         compose.onNodeWithText("Progress").performClick()
@@ -84,11 +87,29 @@ class AppNavigationTest {
     fun withoutAiConsent_libraryQuizWorksAndDeepSeekIsNeverCalled() {
         completeOnboardingAsAdult(withAi = false)
 
+        compose.onNodeWithTag("topic_input").performTextInput("black holes")
+        compose.onNodeWithText("No offline topics match your search.").assertIsDisplayed()
+        compose.onNodeWithTag("topic_input").performTextReplacement("pHoto")
+        compose.onNodeWithText("Linear equations").assertDoesNotExist()
         compose.onNodeWithText("Photosynthesis").performScrollTo().performClick()
         compose.waitUntilAtLeastOneExists(hasText("Question 1 of 5"), TIMEOUT)
         compose.onNodeWithText("Offline library").assertIsDisplayed()
 
         assertTrue(fakeApi.requests.isEmpty())
+    }
+
+    @Test
+    fun weeklyGoalStepperUpdatesHomeSummary() {
+        completeOnboardingAsAdult(withAi = false)
+
+        compose.onNodeWithText("Settings").performClick()
+        compose.onNodeWithText("3 days").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Increase weekly goal").performClick()
+        compose.waitUntilAtLeastOneExists(hasText("4 days"), TIMEOUT)
+
+        compose.onNodeWithText("Home").performClick()
+        compose.onNode(hasScrollAction()).performScrollToNode(hasText("0 of 4 days"))
+        compose.onNodeWithText("0 of 4 days").assertIsDisplayed()
     }
 
     @Test
