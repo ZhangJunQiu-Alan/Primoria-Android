@@ -3,30 +3,18 @@ package au.edu.jcu.zhangfan.primoria.ui.quiz
 import kotlinx.coroutines.delay
 import androidx.compose.foundation.layout.width
 import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.filled.Flag
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.IconButton
-import au.edu.jcu.zhangfan.primoria.R
-import androidx.compose.ui.res.painterResource
-import androidx.compose.foundation.Image
 import androidx.activity.compose.BackHandler
-import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.CubicBezierEasing
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutHorizontally
-import androidx.compose.animation.slideOutVertically
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -54,8 +42,10 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Bolt
-import androidx.compose.material.icons.outlined.Cancel
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.automirrored.outlined.ArrowForward
+import androidx.compose.material.icons.outlined.AutoAwesome
+import androidx.compose.material.icons.outlined.Replay
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.CloudOff
@@ -65,9 +55,7 @@ import androidx.compose.material.icons.outlined.Lightbulb
 import androidx.compose.material.icons.outlined.SentimentSatisfied
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
@@ -79,6 +67,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -87,12 +76,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
@@ -104,17 +95,14 @@ import au.edu.jcu.zhangfan.primoria.domain.model.ContentSource
 import au.edu.jcu.zhangfan.primoria.domain.model.QuizQuestion
 import au.edu.jcu.zhangfan.primoria.ui.components.ContentColumn
 import au.edu.jcu.zhangfan.primoria.ui.components.EmptyState
-import au.edu.jcu.zhangfan.primoria.ui.components.MasteryBadge
+import au.edu.jcu.zhangfan.primoria.ui.components.LearningMetric
 import au.edu.jcu.zhangfan.primoria.ui.components.PrimoriaCard
-import au.edu.jcu.zhangfan.primoria.ui.components.ProgressRing
 import au.edu.jcu.zhangfan.primoria.ui.components.SegmentedProgress
 import au.edu.jcu.zhangfan.primoria.ui.components.SourceBadge
 import au.edu.jcu.zhangfan.primoria.ui.components.rememberPressScale
 import au.edu.jcu.zhangfan.primoria.ui.theme.PrimoriaTheme
 import au.edu.jcu.zhangfan.primoria.ui.theme.tabular
 import kotlin.math.roundToInt
-
-private val SheetEasing = CubicBezierEasing(0.05f, 0.7f, 0.1f, 1f)
 
 @Composable
 fun QuizRoute(
@@ -128,6 +116,9 @@ fun QuizRoute(
         onSelect = viewModel::select,
         onCheck = viewModel::check,
         onNext = viewModel::next,
+        onPrevious = viewModel::previous,
+        onReview = viewModel::openReview,
+        onReturnToSummary = viewModel::returnToSummary,
         onRetry = viewModel::load,
         onReport = viewModel::report,
         onClose = onClose,
@@ -145,12 +136,39 @@ fun QuizScreen(
     onReport: (QuizQuestion, String) -> Unit,
     onClose: () -> Unit,
     onPractiseAgain: (String) -> Unit,
+    onPrevious: () -> Unit = {},
+    onReview: (Int?) -> Unit = {},
+    onReturnToSummary: () -> Unit = onClose,
 ) {
     var confirmExit by rememberSaveable { mutableStateOf(false) }
     val active = state as? QuizUiState.Active
-    // Leaving mid-quiz asks first, but honestly: answers already checked are kept.
-    val askBeforeLeaving = active != null && (active.index > 0 || active.feedback != null)
-    BackHandler(enabled = askBeforeLeaving) { confirmExit = true }
+    val reviewing = active?.reviewSummary != null
+    val askBeforeLeaving = active != null && !reviewing && (active.submitting || active.answers.isNotEmpty() || active.feedback != null)
+    val close = {
+        when {
+            reviewing -> onReturnToSummary()
+            askBeforeLeaving -> confirmExit = true
+            else -> onClose()
+        }
+    }
+    BackHandler(enabled = reviewing || askBeforeLeaving, onBack = close)
+
+    val haptics = LocalHapticFeedback.current
+    var acknowledgedAnswers by rememberSaveable { mutableStateOf(0) }
+    var summaryAnimated by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(active?.answers?.size) {
+        val count = active?.answers?.size ?: return@LaunchedEffect
+        if (count > acknowledgedAnswers) {
+            acknowledgedAnswers = count
+            if (active.hapticsEnabled && !reviewing) haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+        }
+    }
+    if (state == QuizUiState.Loading) {
+        LaunchedEffect(Unit) {
+            acknowledgedAnswers = 0
+            summaryAnimated = false
+        }
+    }
 
     Box(
         Modifier
@@ -159,12 +177,16 @@ fun QuizScreen(
     ) {
         ContentColumn(Modifier.windowInsetsPadding(WindowInsets.statusBars)) {
             Column(Modifier.fillMaxSize()) {
-                QuizTopBar(state, onClose = { if (askBeforeLeaving) confirmExit = true else onClose() })
-                Box(Modifier.weight(1f)) {
+                QuizTopBar(state, onClose = close)
+                Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
                     when (state) {
                         QuizUiState.Loading -> LoadingQuiz()
-                        is QuizUiState.Active -> ActiveQuiz(state, onSelect, onCheck, onNext, onReport)
-                        is QuizUiState.Finished -> QuizSummary(state, onDone = onClose, onPractiseAgain = { onPractiseAgain(state.topicTitle) })
+                        is QuizUiState.Active -> ActiveQuiz(state, onSelect, onCheck, onNext, onPrevious, onReport)
+                        is QuizUiState.Finished -> QuizSummary(
+                            state, onDone = onClose, onPractiseAgain = { onPractiseAgain(state.topicTitle) },
+                            onReview = onReview, animate = !summaryAnimated,
+                            onAnimated = { summaryAnimated = true },
+                        )
                         is QuizUiState.Refused -> EmptyState(
                             icon = Icons.Outlined.SentimentSatisfied,
                             title = "Let's pick a different topic",
@@ -176,9 +198,9 @@ fun QuizScreen(
                             title = "No questions yet",
                             body = state.message,
                             action = {
-                                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                                    OutlinedButton(onClick = onClose) { Text("Back to Home") }
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                     Button(onClick = onRetry) { Text("Try again") }
+                                    TextButton(onClick = onClose) { Text("Back to Home") }
                                 }
                             },
                         )
@@ -212,7 +234,13 @@ private fun QuizTopBar(state: QuizUiState, onClose: () -> Unit) {
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         modifier = Modifier.fillMaxWidth().padding(start = 12.dp, end = 20.dp, top = 8.dp, bottom = 8.dp),
     ) {
-        IconButton(onClick = onClose) { Icon(Icons.Outlined.Close, contentDescription = "Close quiz") }
+        val reviewing = (state as? QuizUiState.Active)?.reviewSummary != null
+        IconButton(onClick = onClose) {
+            Icon(
+                if (reviewing) Icons.AutoMirrored.Outlined.ArrowBack else Icons.Outlined.Close,
+                contentDescription = if (reviewing) "Return to summary" else "Close quiz",
+            )
+        }
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             val title = when (state) {
                 is QuizUiState.Active -> "Question ${state.index + 1} of ${state.questions.size}"
@@ -235,7 +263,7 @@ private fun QuizTopBar(state: QuizUiState, onClose: () -> Unit) {
                 SegmentedProgress(
                     total = state.questions.size,
                     current = state.index,
-                    answered = state.index + if (state.feedback != null) 1 else 0,
+                    answered = maxOf(state.answers.size, state.index + if (state.feedback != null) 1 else 0),
                 )
             }
         }
@@ -244,36 +272,21 @@ private fun QuizTopBar(state: QuizUiState, onClose: () -> Unit) {
 
 @Composable
 private fun LoadingQuiz() {
-    val bob by rememberInfiniteTransition(label = "loading").animateFloat(
-        initialValue = 0f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(tween(1400, easing = FastOutSlowInEasing), RepeatMode.Reverse),
-        label = "bob",
-    )
     Column(
+        Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.navigationBars).padding(horizontal = 24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
-        modifier = Modifier.fillMaxSize().padding(32.dp),
     ) {
-        Image(
-            painterResource(R.drawable.illus_loading),
-            contentDescription = null,
-            modifier = Modifier.size(200.dp).graphicsLayer { translationY = -10.dp.toPx() * bob },
-        )
-        Spacer(Modifier.height(20.dp))
-        Text("Preparing your questions…", style = MaterialTheme.typography.headlineSmall)
+        Surface(shape = RoundedCornerShape(22.dp), color = MaterialTheme.colorScheme.primaryContainer) {
+            Icon(Icons.Outlined.AutoAwesome, null, Modifier.size(82.dp).padding(22.dp), tint = MaterialTheme.colorScheme.primary)
+        }
+        Spacer(Modifier.height(16.dp))
+        Text("Preparing your quiz", style = MaterialTheme.typography.headlineSmall, textAlign = TextAlign.Center)
         Spacer(Modifier.height(6.dp))
-        Text(
-            "Fresh AI questions can take up to half a minute.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
-        )
-        Spacer(Modifier.height(24.dp))
-        LinearProgressIndicator(
-            modifier = Modifier.width(140.dp).clip(RoundedCornerShape(999.dp)),
-            trackColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-        )
+        Text("Fresh AI questions can take up to half a minute.", style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
+        Spacer(Modifier.height(22.dp))
+        LinearProgressIndicator(Modifier.width(160.dp), trackColor = MaterialTheme.colorScheme.surfaceContainerHigh)
     }
 }
 
@@ -284,129 +297,130 @@ private fun ActiveQuiz(
     onSelect: (Int) -> Unit,
     onCheck: () -> Unit,
     onNext: () -> Unit,
+    onPrevious: () -> Unit,
     onReport: (QuizQuestion, String) -> Unit,
 ) {
     val haptics = LocalHapticFeedback.current
-    var showReportSheet by remember { mutableStateOf(false) }
+    val reviewing = state.reviewSummary != null
+    val reviewPosition = state.reviewIndices.indexOf(state.index)
+    val canGoBack = if (reviewing) reviewPosition > 0 else state.index > 0
 
-    LaunchedEffect(state.feedback) {
-        if (state.feedback != null && state.hapticsEnabled) haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-    }
-
-    Column(Modifier.fillMaxSize()) {
-        AnimatedContent(
-            targetState = state.index,
-            transitionSpec = {
-                (slideInHorizontally(tween(300)) { it / 8 } + fadeIn(tween(300))) togetherWith
-                    (slideOutHorizontally(tween(200)) { -it / 8 } + fadeOut(tween(200)))
-            },
-            label = "question",
-            modifier = Modifier.weight(1f),
-        ) { index ->
-            val question = state.questions[index]
-            val scroll = rememberScrollState()
-            // Keep every option visible above the feedback panel once an answer is checked.
-            LaunchedEffect(state.feedback != null) {
-                if (state.feedback != null) {
-                    delay(320)
-                    scroll.animateScrollTo(scroll.maxValue)
-                }
+    key(state.index) {
+        var showReportSheet by rememberSaveable { mutableStateOf(false) }
+        val question = state.question
+        val feedback = state.feedback
+        val reported = question.id in state.reportedIds
+        val scroll = rememberScrollState()
+        LaunchedEffect(feedback != null) {
+            if (feedback != null) {
+                delay(250)
+                scroll.animateScrollTo(scroll.maxValue)
             }
+        }
+        Column(Modifier.fillMaxSize()) {
             Column(
-                verticalArrangement = Arrangement.spacedBy(10.dp),
-                modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(scroll)
-                    .padding(horizontal = 20.dp, vertical = 8.dp),
+                Modifier.weight(1f).fillMaxWidth().verticalScroll(scroll)
+                    .padding(horizontal = 20.dp, vertical = 9.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                state.notice?.takeIf { index == 0 }?.let { notice ->
-                    Surface(shape = RoundedCornerShape(16.dp), color = PrimoriaTheme.colors.effortContainer, contentColor = PrimoriaTheme.colors.onEffortContainer) {
-                        Row(Modifier.padding(14.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                            Icon(Icons.Outlined.CloudOff, null, modifier = Modifier.size(20.dp))
-                            Text(notice, style = MaterialTheme.typography.bodyMedium)
-                        }
+                state.notice?.takeIf { state.index == 0 && !reviewing }?.let { notice ->
+                    Surface(shape = RoundedCornerShape(14.dp), color = PrimoriaTheme.colors.effortContainer,
+                        contentColor = PrimoriaTheme.colors.onEffortContainer) {
+                        Text(notice, Modifier.padding(12.dp), style = MaterialTheme.typography.bodySmall)
                     }
                 }
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     SourceBadge(question.source)
+                    if (state.fromStudyMaterial) Text("Study material", style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    if (reviewing) Text("Answer review", style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.primary)
                     Spacer(Modifier.weight(1f))
-                    val reported = question.id in state.reportedIds
                     IconButton(onClick = { showReportSheet = true }, enabled = !reported) {
-                        Icon(
-                            if (reported) Icons.Filled.Flag else Icons.Outlined.Flag,
+                        Icon(if (reported) Icons.Filled.Flag else Icons.Outlined.Flag,
                             contentDescription = if (reported) "Reported" else "Report this question",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(20.dp),
-                        )
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
-                Text(question.prompt, style = MaterialTheme.typography.headlineMedium, modifier = Modifier.padding(bottom = 14.dp))
-                Column(Modifier.selectableGroup(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    question.options.forEachIndexed { optionIndex, option ->
+                Text(question.prompt, style = MaterialTheme.typography.headlineMedium,
+                    modifier = Modifier.padding(bottom = 6.dp).semantics { heading() })
+                Column(Modifier.selectableGroup(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    question.options.forEachIndexed { index, option ->
                         OptionTile(
-                            letter = 'A' + optionIndex,
+                            letter = 'A' + index,
                             text = option,
-                            selected = state.selectedIndex == optionIndex,
-                            result = state.feedback?.let {
-                                when (optionIndex) {
+                            selected = state.selectedIndex == index,
+                            result = feedback?.let {
+                                when (index) {
                                     question.correctIndex -> OptionResult.CORRECT
                                     it.chosenIndex -> OptionResult.WRONG_CHOICE
                                     else -> OptionResult.OTHER
                                 }
                             },
                             onClick = {
-                                if (state.hapticsEnabled) haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                onSelect(optionIndex)
+                                if (!state.submitting) {
+                                    if (state.hapticsEnabled) haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    onSelect(index)
+                                }
                             },
                         )
                     }
                 }
-                Spacer(Modifier.height(12.dp))
+                AnimatedVisibility(
+                    visible = feedback != null,
+                    enter = fadeIn(tween(180)) + slideInVertically(tween(220)) { it / 5 },
+                    exit = fadeOut(tween(100)),
+                ) {
+                    if (feedback != null) FeedbackPanel(question, feedback, state.dailyCapReached)
+                }
+                state.submitError?.let { Text(it, color = MaterialTheme.colorScheme.error) }
             }
-        }
-
-        // Check button and feedback panel share the bottom slot; the panel slides up over it.
-        Box(Modifier.fillMaxWidth()) {
-            if (state.feedback == null) {
-                Button(
-                    onClick = onCheck,
-                    enabled = state.selectedIndex != null && !state.submitting,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .windowInsetsPadding(WindowInsets.navigationBars)
-                        .padding(16.dp)
-                        .heightIn(min = 54.dp)
-                        .testTag("quiz_primary_action"),
-                ) { Text("Check answer", style = MaterialTheme.typography.titleMedium) }
-            }
-            androidx.compose.animation.AnimatedVisibility(
-                visible = state.feedback != null,
-                enter = slideInVertically(tween(280, easing = SheetEasing)) { it } + fadeIn(tween(180)),
-                exit = slideOutVertically(tween(180)) { it } + fadeOut(tween(120)),
-            ) {
-                state.feedback?.let { feedback ->
-                    FeedbackPanel(
-                        question = state.question,
-                        feedback = feedback,
-                        capReached = state.dailyCapReached,
-                        actionLabel = if (state.isLastQuestion) "See summary" else "Next question",
-                        onNext = onNext,
-                        reported = state.question.id in state.reportedIds,
-                        onReport = { showReportSheet = true },
-                    )
+            Surface(color = MaterialTheme.colorScheme.background) {
+                Row(
+                    Modifier.fillMaxWidth().windowInsetsPadding(WindowInsets.navigationBars)
+                        .padding(horizontal = 20.dp, vertical = 9.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    if (canGoBack) {
+                        OutlinedButton(
+                            onClick = onPrevious,
+                            enabled = !state.submitting,
+                            shape = RoundedCornerShape(14.dp),
+                            modifier = Modifier.heightIn(min = 52.dp),
+                        ) {
+                            Icon(Icons.AutoMirrored.Outlined.ArrowBack, null, Modifier.size(17.dp))
+                            Spacer(Modifier.width(5.dp))
+                            Text("Previous")
+                        }
+                    }
+                    val label = when {
+                        reviewing && reviewPosition == state.reviewIndices.lastIndex -> "Back to summary"
+                        reviewing -> "Next review"
+                        state.submitting -> "Checking…"
+                        feedback == null -> "Check answer"
+                        state.isLastQuestion -> "See summary"
+                        else -> "Next question"
+                    }
+                    Button(
+                        onClick = if (feedback == null) onCheck else onNext,
+                        enabled = !state.submitting && (feedback != null || state.selectedIndex != null),
+                        shape = RoundedCornerShape(14.dp),
+                        modifier = Modifier.weight(1f).heightIn(min = 52.dp).testTag("quiz_primary_action"),
+                    ) { Text(label, style = MaterialTheme.typography.titleSmall) }
                 }
             }
         }
-    }
 
-    if (showReportSheet) {
-        ReportSheet(
-            onDismiss = { showReportSheet = false },
-            onSubmit = { reason ->
-                onReport(state.question, reason)
-                showReportSheet = false
-            },
-        )
+        if (showReportSheet) {
+            ReportSheet(
+                onDismiss = { showReportSheet = false },
+                onSubmit = { reason ->
+                    onReport(question, reason)
+                    showReportSheet = false
+                },
+            )
+        }
     }
 }
 
@@ -494,75 +508,34 @@ private fun OptionTile(
 }
 
 @Composable
-private fun FeedbackPanel(
-    question: QuizQuestion,
-    feedback: AnswerFeedback,
-    capReached: Boolean,
-    actionLabel: String,
-    onNext: () -> Unit,
-    reported: Boolean,
-    onReport: () -> Unit,
-) {
+private fun FeedbackPanel(question: QuizQuestion, feedback: AnswerFeedback, capReached: Boolean) {
     val extended = PrimoriaTheme.colors
-    val accent = if (feedback.correct) extended.mastery else MaterialTheme.colorScheme.error
+    val scheme = MaterialTheme.colorScheme
+    val accent = if (feedback.correct) extended.mastery else scheme.error
     val xpLine = when {
         feedback.xpAwarded > 0 -> "+${feedback.xpAwarded} XP for a correct first answer"
-        feedback.correct && capReached -> "Today's XP limit is reached — your mastery still grows."
-        feedback.correct -> "No XP this time: you've answered this question before."
+        feedback.correct && capReached -> "Daily XP limit reached. This answer still counts toward mastery."
+        feedback.correct -> "You've already answered this question, so it earns no XP."
         else -> null
     }
     Surface(
-        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
-        color = extended.cardSurface,
-        border = BorderStroke(1.dp, extended.hairline),
-        shadowElevation = 3.dp,
         modifier = Modifier.fillMaxWidth().semantics { liveRegion = LiveRegionMode.Polite },
+        shape = RoundedCornerShape(16.dp),
+        color = if (feedback.correct) extended.masteryContainer else scheme.errorContainer,
+        contentColor = if (feedback.correct) extended.onMasteryContainer else scheme.onErrorContainer,
     ) {
-        Column(
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-            modifier = Modifier
-                .windowInsetsPadding(WindowInsets.navigationBars)
-                .heightIn(max = 380.dp)
-                .verticalScroll(rememberScrollState())
-                .padding(start = 20.dp, end = 20.dp, top = 20.dp, bottom = 16.dp),
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                Icon(
-                    if (feedback.correct) Icons.Outlined.CheckCircle else Icons.Outlined.Lightbulb,
-                    contentDescription = null,
-                    tint = accent,
-                    modifier = Modifier.size(22.dp),
-                )
-                Text(
-                    if (feedback.correct) "Correct." else "Not quite — here's why:",
-                    style = MaterialTheme.typography.headlineSmall,
-                )
+        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Icon(if (feedback.correct) Icons.Outlined.CheckCircle else Icons.Outlined.Lightbulb, null,
+                    Modifier.size(19.dp), tint = accent)
+                Text(if (feedback.correct) "Correct." else "Not quite — here's why:",
+                    style = MaterialTheme.typography.titleMedium)
             }
-            Text(question.explanation, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(question.explanation, style = MaterialTheme.typography.bodyMedium)
+            xpLine?.let { Text(it, style = MaterialTheme.typography.labelMedium) }
             if (question.source == ContentSource.AI_GENERATED) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        "Written by AI from the topic alone.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.weight(1f),
-                    )
-                    TextButton(onClick = onReport, enabled = !reported, modifier = Modifier.heightIn(min = 48.dp)) {
-                        Icon(Icons.Outlined.Flag, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Text(if (reported) "Reported" else "Report this", Modifier.padding(start = 6.dp))
-                    }
-                }
+                Text("AI-generated explanation", style = MaterialTheme.typography.labelMedium)
             }
-            xpLine?.let {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Icon(Icons.Outlined.Bolt, null, tint = extended.effort, modifier = Modifier.size(18.dp))
-                    Text(it, style = MaterialTheme.typography.labelLarge, color = extended.effort)
-                }
-            }
-            Button(
-                onClick = onNext,
-                modifier = Modifier.fillMaxWidth().padding(top = 6.dp).heightIn(min = 54.dp).testTag("quiz_primary_action"),
-            ) { Text(actionLabel, style = MaterialTheme.typography.titleMedium) }
         }
     }
 }
@@ -610,73 +583,132 @@ private fun ReportSheet(onDismiss: () -> Unit, onSubmit: (String) -> Unit) {
 }
 
 @Composable
-private fun QuizSummary(state: QuizUiState.Finished, onDone: () -> Unit, onPractiseAgain: () -> Unit) {
+private fun QuizSummary(
+    state: QuizUiState.Finished,
+    onDone: () -> Unit,
+    onPractiseAgain: () -> Unit,
+    onReview: (Int?) -> Unit,
+    animate: Boolean,
+    onAnimated: () -> Unit,
+) {
     val extended = PrimoriaTheme.colors
-    Column(
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .windowInsetsPadding(WindowInsets.navigationBars)
-            .padding(horizontal = 20.dp, vertical = 8.dp),
-    ) {
-        Image(
-            painterResource(R.drawable.illus_summary),
-            contentDescription = null,
-            modifier = Modifier.size(168.dp).align(Alignment.CenterHorizontally),
-        )
-        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
-            Text("${state.correct} of ${state.total} correct", style = MaterialTheme.typography.displaySmall.tabular())
-            Text(
-                if (state.correct == state.total) "Every answer right — great work." else "Every question you check helps the next one stick.",
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center,
-            )
-        }
-        // Effort and knowledge are shown side by side but never merged (commitment 05).
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.height(IntrinsicSize.Max).padding(top = 4.dp)) {
-            PrimoriaCard(contentPadding = 16.dp, modifier = Modifier.weight(1f).fillMaxHeight()) {
-                Text("Mastery", style = MaterialTheme.typography.labelMedium, color = extended.mastery)
-                Spacer(Modifier.height(12.dp))
-                ProgressRing(
-                    modifier = Modifier.align(Alignment.CenterHorizontally),
-                    progress = state.mastery.toFloat(),
-                    colors = extended.masteryRing,
-                    trackColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                    size = 76.dp,
-                    strokeWidth = 7.dp,
-                ) { Text("${(state.mastery * 100).roundToInt()}%", style = MaterialTheme.typography.titleLarge.tabular()) }
-                Spacer(Modifier.height(12.dp))
-                MasteryBadge(state.masteryLevel, Modifier.align(Alignment.CenterHorizontally))
-            }
-            PrimoriaCard(contentPadding = 16.dp, modifier = Modifier.weight(1f).fillMaxHeight()) {
-                Text("Effort", style = MaterialTheme.typography.labelMedium, color = extended.effort)
-                Spacer(Modifier.height(12.dp))
-                Spacer(Modifier.weight(1f))
-                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.align(Alignment.CenterHorizontally)) {
-                    Icon(Icons.Outlined.Bolt, null, tint = extended.effort, modifier = Modifier.size(22.dp))
-                    Text("+${state.xpEarned} XP", style = MaterialTheme.typography.headlineLarge.tabular())
+    val score = remember { Animatable(if (animate) 0f else 1f) }
+    val details = remember { Animatable(if (animate) 0f else 1f) }
+    val session = state.session
+    val missed = session?.answers?.count { !it.value.correct } ?: 0
+    LaunchedEffect(Unit) {
+        score.animateTo(1f, tween(420, easing = FastOutSlowInEasing))
+        details.animateTo(1f, tween(250))
+        onAnimated()
+    }
+    Column(Modifier.fillMaxSize()) {
+        Column(
+            Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState())
+                .padding(start = 20.dp, end = 20.dp, top = 8.dp, bottom = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Surface(shape = RoundedCornerShape(22.dp), color = Color(0xFF3835BB), contentColor = Color.White) {
+                Row(Modifier.fillMaxWidth().padding(18.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text(state.topicTitle, style = MaterialTheme.typography.labelLarge, color = Color(0xFFE5E2FF))
+                        Text("${state.correct} / ${state.total}", style = MaterialTheme.typography.displayLarge.tabular(),
+                            modifier = Modifier.graphicsLayer {
+                                scaleX = .80f + score.value * .20f
+                                scaleY = .80f + score.value * .20f
+                            }.semantics { heading() })
+                        Text(if (state.correct == 1) "answer correct" else "answers correct", style = MaterialTheme.typography.titleMedium)
+                        if (session != null) {
+                            Row(Modifier.padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                session.questions.indices.forEach { index ->
+                                    val correct = session.answers[index]?.correct == true
+                                    Box(Modifier.size(9.dp).background(
+                                        if (correct) Color(0xFFDAFA82) else Color(0xFF9995F3), CircleShape,
+                                    ))
+                                }
+                            }
+                        }
+                    }
+                    Box(
+                        Modifier.size(72.dp).graphicsLayer {
+                            scaleX = .70f + score.value * .30f
+                            scaleY = .70f + score.value * .30f
+                            rotationZ = -17f + score.value * 17f
+                        }.background(Color(0xFFDAFA82), RoundedCornerShape(20.dp)),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(Icons.Outlined.AutoAwesome, null, Modifier.size(39.dp), tint = Color(0xFF25229D))
+                    }
                 }
-                Spacer(Modifier.weight(1f))
-                Text(
-                    if (state.dailyCapReached) "Today's XP limit is reached. Learning still builds mastery." else "XP rewards correct first answers.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth(),
-                )
+            }
+            Row(
+                Modifier.fillMaxWidth().height(IntrinsicSize.Max).graphicsLayer { alpha = .55f + details.value * .45f },
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                LearningMetric("Topic mastery", "${(state.mastery * 100).roundToInt()}%", state.masteryLevel.label,
+                    extended.masteryContainer, extended.onMasteryContainer, Modifier.weight(1f).fillMaxHeight())
+                LearningMetric("Effort earned", "+${state.xpEarned} XP",
+                    if (state.dailyCapReached) "Daily XP limit reached" else "Correct first answers",
+                    extended.effortContainer, extended.onEffortContainer, Modifier.weight(1f).fillMaxHeight())
+            }
+            if (session != null) {
+                Row(Modifier.fillMaxWidth().padding(top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Text("Answer review", style = MaterialTheme.typography.titleLarge,
+                        modifier = Modifier.weight(1f).semantics { heading() })
+                    Text(if (missed == 0) "All correct" else "$missed to revisit",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = if (missed == 0) extended.mastery else MaterialTheme.colorScheme.error)
+                }
+                session.questions.forEachIndexed { index, question ->
+                    val answer = session.answers[index] ?: return@forEachIndexed
+                    ReviewRow(index, question, answer.correct) { onReview(index) }
+                }
+                if (missed > 0) {
+                    PrimoriaCard(Modifier.fillMaxWidth(), contentPadding = 14.dp) {
+                        Text("Build on this quiz", style = MaterialTheme.typography.titleLarge)
+                        Text(if (missed == 1) "Revisit the explanation for your missed answer."
+                            else "Revisit the explanations for your $missed missed answers.",
+                            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        TextButton(onClick = { onReview(null) }) { Text("Review missed answers") }
+                    }
+                }
             }
         }
-        Text(
-            "Mastery estimates what you know about ${state.topicTitle}; XP only measures effort.",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.fillMaxWidth(),
-        )
-        Spacer(Modifier.height(4.dp))
-        Button(onClick = onPractiseAgain, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) { Text("Practise this topic again") }
-        TextButton(onClick = onDone, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) { Text("Done") }
+        Surface(color = MaterialTheme.colorScheme.background) {
+            Row(
+                Modifier.fillMaxWidth().windowInsetsPadding(WindowInsets.navigationBars)
+                    .padding(horizontal = 20.dp, vertical = 9.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                OutlinedButton(onClick = onPractiseAgain, modifier = Modifier.weight(1f).heightIn(min = 52.dp),
+                    shape = RoundedCornerShape(14.dp)) { Text("Practise again") }
+                Button(onClick = onDone, modifier = Modifier.weight(1f).heightIn(min = 52.dp),
+                    shape = RoundedCornerShape(14.dp)) { Text("Done") }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ReviewRow(index: Int, question: QuizQuestion, correct: Boolean, onClick: () -> Unit) {
+    val colors = PrimoriaTheme.colors
+    val scheme = MaterialTheme.colorScheme
+    PrimoriaCard(onClick = onClick, contentPadding = 10.dp, shape = RoundedCornerShape(13.dp)) {
+        Row(Modifier.fillMaxWidth().heightIn(min = 42.dp), verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(9.dp)) {
+            Surface(
+                shape = RoundedCornerShape(9.dp),
+                color = if (correct) colors.masteryContainer else scheme.errorContainer,
+                contentColor = if (correct) colors.onMasteryContainer else scheme.onErrorContainer,
+            ) {
+                Icon(if (correct) Icons.Outlined.Check else Icons.Outlined.Replay, null, Modifier.size(32.dp).padding(7.dp))
+            }
+            Column(Modifier.weight(1f)) {
+                Text(question.prompt, style = MaterialTheme.typography.titleSmall)
+                Text("Question ${index + 1} · ${if (correct) "Correct" else "Revisit"}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (correct) colors.mastery else scheme.error)
+            }
+            Icon(Icons.AutoMirrored.Outlined.ArrowForward, null, Modifier.size(15.dp), tint = scheme.onSurfaceVariant)
+        }
     }
 }

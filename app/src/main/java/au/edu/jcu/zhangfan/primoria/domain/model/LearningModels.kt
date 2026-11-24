@@ -44,6 +44,7 @@ data class TopicSummary(
     val attempts: Int,
     val correct: Int,
     val lastStudiedAt: Long?,
+    val isStudyMaterial: Boolean = false,
 ) {
     val masteryLevel: MasteryLevel get() = MasteryLevel.of(mastery, attempts)
     val accuracy: Double get() = if (attempts == 0) 0.0 else correct.toDouble() / attempts

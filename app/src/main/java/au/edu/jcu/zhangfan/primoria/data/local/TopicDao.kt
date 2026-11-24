@@ -12,7 +12,7 @@ interface TopicDao {
 
     @Query(
         """
-        SELECT t.id, t.title, t.last_studied_at, m.mastery, m.attempts, m.correct
+        SELECT t.id, t.title, t.title_key, t.last_studied_at, m.mastery, m.attempts, m.correct
         FROM topics t LEFT JOIN topic_mastery m ON m.topic_id = t.id
         ORDER BY COALESCE(t.last_studied_at, t.created_at) DESC
         """

@@ -10,6 +10,8 @@ import au.edu.jcu.zhangfan.primoria.data.settings.SettingsRepository
 import au.edu.jcu.zhangfan.primoria.domain.model.MasteryLevel
 import au.edu.jcu.zhangfan.primoria.domain.model.QuizQuestion
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -39,6 +41,12 @@ sealed interface QuizUiState {
         val reportedIds: Set<Long> = emptySet(),
         val submitting: Boolean = false,
         val hapticsEnabled: Boolean = false,
+        val fromStudyMaterial: Boolean = false,
+        val answers: Map<Int, AnswerFeedback> = emptyMap(),
+        val draftSelections: Map<Int, Int> = emptyMap(),
+        val reviewSummary: Finished? = null,
+        val reviewIndices: List<Int> = emptyList(),
+        val submitError: String? = null,
     ) : QuizUiState {
         val question: QuizQuestion get() = questions[index]
         val isLastQuestion: Boolean get() = index == questions.lastIndex
@@ -53,6 +61,7 @@ sealed interface QuizUiState {
         val mastery: Double,
         val masteryLevel: MasteryLevel,
         val dailyCapReached: Boolean,
+        val session: Active? = null,
     ) : QuizUiState
 
     data class Refused(val reason: String) : QuizUiState
@@ -70,7 +79,9 @@ class QuizViewModel @Inject constructor(
 
     /** Read by key rather than `toRoute()` so the ViewModel can be unit-tested without Android. */
     private val topic: String = savedStateHandle.get<String>(TOPIC_ARG).orEmpty()
+    private val savedTopicId: Long = savedStateHandle.get<Long>("savedTopicId") ?: 0
     private val sessionId = UUID.randomUUID().toString()
+    private var loadJob: Job? = null
 
     private val _uiState = MutableStateFlow<QuizUiState>(QuizUiState.Loading)
     val uiState: StateFlow<QuizUiState> = _uiState.asStateFlow()
@@ -80,15 +91,25 @@ class QuizViewModel @Inject constructor(
     }
 
     fun load() {
+        if (loadJob?.isActive == true) return
         _uiState.value = QuizUiState.Loading
-        viewModelScope.launch {
+        loadJob = viewModelScope.launch {
             val settings = settingsRepository.settings.first()
-            _uiState.value = when (val result = learningRepository.loadQuiz(topic, settings)) {
+            val result = try {
+                if (savedTopicId > 0) learningRepository.loadSavedQuiz(savedTopicId, topic, settings)
+                else learningRepository.loadQuiz(topic, settings)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (_: Exception) {
+                QuizLoadResult.Unavailable("Couldn't prepare your questions. Please try again.")
+            }
+            _uiState.value = when (result) {
                 is QuizLoadResult.Ready -> QuizUiState.Active(
                     topicTitle = result.topicTitle,
                     questions = result.questions,
                     notice = result.notice,
                     hapticsEnabled = settings.haptics,
+                    fromStudyMaterial = result.fromStudyMaterial,
                 )
                 is QuizLoadResult.Refused -> QuizUiState.Refused(result.reason)
                 is QuizLoadResult.Unavailable -> QuizUiState.Unavailable(result.message)
@@ -98,22 +119,35 @@ class QuizViewModel @Inject constructor(
     }
 
     fun select(optionIndex: Int) = updateActive { state ->
-        if (state.feedback != null) state else state.copy(selectedIndex = optionIndex)
+        if (state.feedback != null || state.submitting || optionIndex !in state.question.options.indices) state
+        else state.copy(
+            selectedIndex = optionIndex,
+            draftSelections = state.draftSelections + (state.index to optionIndex),
+            submitError = null,
+        )
     }
 
     fun check() {
         val state = _uiState.value as? QuizUiState.Active ?: return
         val chosen = state.selectedIndex ?: return
         if (state.feedback != null || state.submitting) return
-        _uiState.value = state.copy(submitting = true)
+        _uiState.value = state.copy(submitting = true, submitError = null)
 
         viewModelScope.launch {
-            val result = learningRepository.submitAnswer(state.question, chosen, sessionId)
-            if (settingsRepository.settings.first().soundEffects) soundEffects.playAnswer(result.correct)
+            val result = try {
+                learningRepository.submitAnswer(state.question, chosen, sessionId)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (_: Exception) {
+                updateActive { it.copy(submitting = false, submitError = "Couldn't save your answer. Try checking it again.") }
+                return@launch
+            }
+            val feedback = AnswerFeedback(chosen, result.correct, result.xpAwarded)
             updateActive {
                 it.copy(
                     submitting = false,
-                    feedback = AnswerFeedback(chosen, result.correct, result.xpAwarded),
+                    feedback = feedback,
+                    answers = it.answers + (state.index to feedback),
                     correctCount = it.correctCount + if (result.correct) 1 else 0,
                     xpEarned = it.xpEarned + result.xpAwarded,
                     mastery = result.mastery,
@@ -121,24 +155,48 @@ class QuizViewModel @Inject constructor(
                     dailyCapReached = result.dailyCapReached,
                 )
             }
+            if (settingsRepository.settings.first().soundEffects) soundEffects.playAnswer(result.correct)
         }
+    }
+
+    fun previous() {
+        val state = _uiState.value as? QuizUiState.Active ?: return
+        if (state.submitting) return
+        val index = if (state.reviewSummary == null) state.index - 1
+        else state.reviewIndices.getOrNull(state.reviewIndices.indexOf(state.index) - 1) ?: return
+        if (index >= 0) _uiState.value = state.atQuestion(index)
     }
 
     fun next() {
         val state = _uiState.value as? QuizUiState.Active ?: return
-        if (state.feedback == null) return
+        if (state.feedback == null || state.submitting) return
+        val summary = state.reviewSummary
+        if (summary != null) {
+            val nextIndex = state.reviewIndices.getOrNull(state.reviewIndices.indexOf(state.index) + 1)
+            if (nextIndex == null) returnToSummary() else _uiState.value = state.atQuestion(nextIndex)
+            return
+        }
         _uiState.value = if (state.isLastQuestion) {
-            QuizUiState.Finished(
-                topicTitle = state.topicTitle,
-                total = state.questions.size,
-                correct = state.correctCount,
-                xpEarned = state.xpEarned,
-                mastery = state.mastery,
-                masteryLevel = MasteryLevel.of(state.mastery, state.topicAttempts),
-                dailyCapReached = state.dailyCapReached,
-            )
+            state.toSummary()
         } else {
-            state.copy(index = state.index + 1, selectedIndex = null, feedback = null)
+            state.atQuestion(state.index + 1)
+        }
+    }
+
+    fun openReview(index: Int?) {
+        val summary = _uiState.value as? QuizUiState.Finished ?: return
+        val session = summary.session ?: return
+        val indices = if (index == null) session.answers.filterValues { !it.correct }.keys.sorted()
+        else session.answers.keys.sorted().filter { it >= index }
+        val first = indices.firstOrNull() ?: return
+        _uiState.value = session.atQuestion(first).copy(reviewSummary = summary, reviewIndices = indices)
+    }
+
+    fun returnToSummary() {
+        val state = _uiState.value as? QuizUiState.Active ?: return
+        val summary = state.reviewSummary
+        if (summary != null) {
+            _uiState.value = summary.copy(session = summary.session?.copy(reportedIds = state.reportedIds))
         }
     }
 
@@ -152,6 +210,24 @@ class QuizViewModel @Inject constructor(
     private inline fun updateActive(crossinline transform: (QuizUiState.Active) -> QuizUiState.Active) {
         _uiState.update { if (it is QuizUiState.Active) transform(it) else it }
     }
+
+    private fun QuizUiState.Active.atQuestion(target: Int): QuizUiState.Active = copy(
+        index = target,
+        selectedIndex = answers[target]?.chosenIndex ?: draftSelections[target],
+        feedback = answers[target],
+        submitError = null,
+    )
+
+    private fun QuizUiState.Active.toSummary() = QuizUiState.Finished(
+        topicTitle = topicTitle,
+        total = questions.size,
+        correct = correctCount,
+        xpEarned = xpEarned,
+        mastery = mastery,
+        masteryLevel = MasteryLevel.of(mastery, topicAttempts),
+        dailyCapReached = dailyCapReached,
+        session = this,
+    )
 
     companion object {
         /** Must match the property name in `QuizRoute`. */

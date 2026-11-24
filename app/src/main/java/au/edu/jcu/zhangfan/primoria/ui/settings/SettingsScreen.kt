@@ -62,7 +62,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -219,7 +218,7 @@ fun SettingsScreen(
             SettingsGroup("AI & privacy", Icons.Outlined.Shield) {
                 SwitchRow(
                     title = "AI-generated quizzes",
-                    subtitle = "Sends your topic, quiz preferences and age band to DeepSeek.",
+                    subtitle = "Optional. You can always use the offline library.",
                     checked = settings.aiConsent,
                     testTag = "settings_ai_toggle",
                 ) { on ->
@@ -264,8 +263,8 @@ fun SettingsScreen(
             title = { Text("Turn on AI quizzes?") },
             text = {
                 Text(
-                    "Please check with a parent or guardian first. Only your topic, quiz preferences and age band " +
-                        "are sent to DeepSeek — never your name, scores or history.",
+                    "Please check with a parent or guardian first. DeepSeek receives the topic and quiz preferences for AI practice. " +
+                        "A material quiz sends the excerpt you confirm. Your scores and history stay on this device.",
                 )
             },
             confirmButton = {
@@ -296,27 +295,22 @@ private fun SettingsGroup(
     emphasized: Boolean = false,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    val colors = PrimoriaTheme.colors
-    PrimoriaCard(
-        Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(17.dp),
-        containerColor = if (emphasized) lerp(colors.cardSurface, MaterialTheme.colorScheme.primaryContainer, .72f) else colors.cardSurface,
-        border = !emphasized,
-        contentPadding = 0.dp,
-    ) {
-        Column(Modifier.padding(start = 13.dp, end = 13.dp, top = 11.dp, bottom = 4.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Box(
-                    Modifier.size(28.dp).background(MaterialTheme.colorScheme.primaryContainer, RoundedCornerShape(8.dp)),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(icon, null, Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onPrimaryContainer)
-                }
-                Text(title, style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
-                    modifier = Modifier.semantics { heading() })
+    val group: @Composable ColumnScope.() -> Unit = {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Box(
+                Modifier.size(28.dp).background(MaterialTheme.colorScheme.primaryContainer, RoundedCornerShape(8.dp)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(icon, null, Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onPrimaryContainer)
             }
-            content()
+            Text(title, style = MaterialTheme.typography.titleLarge, modifier = Modifier.semantics { heading() })
         }
+        content()
+    }
+    if (emphasized) {
+        PrimoriaCard(Modifier.fillMaxWidth(), shape = RoundedCornerShape(18.dp), contentPadding = 13.dp, content = group)
+    } else {
+        Column(Modifier.fillMaxWidth().padding(horizontal = 2.dp, vertical = 5.dp), content = group)
     }
 }
 

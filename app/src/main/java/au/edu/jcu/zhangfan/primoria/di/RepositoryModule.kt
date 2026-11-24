@@ -4,8 +4,6 @@ import au.edu.jcu.zhangfan.primoria.data.feedback.SoundEffects
 import au.edu.jcu.zhangfan.primoria.data.feedback.ToneSoundEffects
 import au.edu.jcu.zhangfan.primoria.data.reminder.ReminderScheduler
 import au.edu.jcu.zhangfan.primoria.data.reminder.WorkManagerReminderScheduler
-import au.edu.jcu.zhangfan.primoria.data.remote.ApiKeyProvider
-import au.edu.jcu.zhangfan.primoria.data.remote.KeystoreApiKeyProvider
 import au.edu.jcu.zhangfan.primoria.data.repository.AssetOfflineLibrary
 import au.edu.jcu.zhangfan.primoria.data.repository.DefaultLearningRepository
 import au.edu.jcu.zhangfan.primoria.data.repository.DefaultPrivacyRepository
@@ -30,7 +28,6 @@ abstract class RepositoryModule {
     @Binds abstract fun bindPrivacy(impl: DefaultPrivacyRepository): PrivacyRepository
     @Binds abstract fun bindSettings(impl: DataStoreSettingsRepository): SettingsRepository
     @Binds abstract fun bindOfflineLibrary(impl: AssetOfflineLibrary): OfflineLibrary
-    @Binds abstract fun bindApiKeyProvider(impl: KeystoreApiKeyProvider): ApiKeyProvider
     @Binds abstract fun bindSoundEffects(impl: ToneSoundEffects): SoundEffects
     @Binds abstract fun bindReminderScheduler(impl: WorkManagerReminderScheduler): ReminderScheduler
 }

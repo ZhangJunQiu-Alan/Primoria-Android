@@ -8,8 +8,10 @@ import androidx.datastore.preferences.preferencesDataStoreFile
 import androidx.room.Room
 import au.edu.jcu.zhangfan.primoria.BuildConfig
 import au.edu.jcu.zhangfan.primoria.data.local.PrimoriaDatabase
+import au.edu.jcu.zhangfan.primoria.data.remote.ApiKeyProvider
 import au.edu.jcu.zhangfan.primoria.data.remote.AuthInterceptor
 import au.edu.jcu.zhangfan.primoria.data.remote.DeepSeekApi
+import au.edu.jcu.zhangfan.primoria.data.remote.KeystoreApiKeyProvider
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -53,6 +55,9 @@ object AppModule {
 @Module
 @InstallIn(SingletonComponent::class)
 object NetworkModule {
+
+    @Provides
+    fun provideApiKeyProvider(provider: KeystoreApiKeyProvider): ApiKeyProvider = provider
 
     @Provides
     @Singleton

@@ -26,7 +26,7 @@ import kotlinx.serialization.Serializable
 @Serializable data object MyDataRoute
 
 /** [topic] is free text typed by the learner; also reachable via `primoria://quiz/{topic}`. */
-@Serializable data class QuizRoute(val topic: String)
+@Serializable data class QuizRoute(val topic: String, val savedTopicId: Long = 0)
 
 const val QUIZ_DEEP_LINK_BASE = "primoria://quiz"
 

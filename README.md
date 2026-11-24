@@ -2,10 +2,11 @@
 
 **CP3406 Assessment 3 – Education App** · Kotlin · Jetpack Compose · Material 3 · Hilt · Room · Retrofit · Navigation · DataStore · WorkManager
 
-Primoria is an ethics-first learning app for **secondary-school students and older learners (13+)**.
-A learner types *any* topic, and Primoria builds a short multiple-choice quiz with clear explanations,
-tracks what they actually know (mastery) separately from how much effort they put in (XP), and
-keeps all learning data on the device.
+Primoria is a native Android learning app for **secondary-school students and older learners (13+)**.
+Learners practise with the bundled offline library or opt into DeepSeek to generate a short quiz
+from a typed topic or a study material excerpt. The app explains checked answers, offers a review of
+missed questions and keeps learning history on the device. It presents estimated topic mastery
+and XP as separate measures.
 
 It is the Android rebuild of the Primoria web project, designed around the six ethical commitments from my
 CP3406 Assessment 2 presentation (*Designing for Trust: learner-data privacy and gamified engagement*).
@@ -18,19 +19,26 @@ CP3406 Assessment 2 presentation (*Designing for Trust: learner-data privacy and
 |---|---|---|---|
 | ![Progress](docs/screenshots/progress.png) | ![Settings](docs/screenshots/settings.png) | ![My data](docs/screenshots/my-data.png) | ![Consent](docs/screenshots/consent.png) |
 
-| Dark theme | Dark progress | Tablet (navigation rail) |
+| Study material confirmation | Previous question and feedback | Missed-answer review |
+|---|---|---|
+| ![Excerpt preview and Generate quiz](docs/screenshots/material-confirm.png) | ![Checked feedback with Previous action](docs/screenshots/feedback-previous.png) | ![Question review at the end of a quiz](docs/screenshots/summary-review.png) |
+
+| Dark theme | Dark progress | Tablet (navigation rail and two columns) |
 |---|---|---|
 | ![Home dark](docs/screenshots/home-dark.png) | ![Progress dark](docs/screenshots/progress-dark.png) | ![Tablet](docs/screenshots/tablet.png) |
 
 ---
+
+The images above are Android emulator captures. The study material confirmation uses a sample text file.
+The review screens show answers and XP from emulator practice sessions.
 
 ## Core features
 
 | Screen | What it does |
 |---|---|
 | **Onboarding** (3 steps) | Welcome, age band (13–17 / 18+), and privacy choices. AI generation is **opt-in** and explained in plain language; learners aged 13–17 also confirm that a parent or guardian knows. |
-| **Home** (landing) | "Continue learning" card with mastery level, a free-text topic box when AI is on (it becomes a search box for the offline library when AI is off), a compact six-topic **offline library**, a weekly-goal bar and a "today's XP" shortcut to Progress. |
-| **Quiz** (activity) | 5 or 10 questions, A–D options, *Check answer* → correct/incorrect shown with **icon + text + colour**, an explanation, XP feedback, an **AI-generated** label and a **Report** action on every question, and a summary that shows **effort and mastery as separate cards**. |
+| **Home** (landing) | The **Learn today** page leads with **Continue quiz** or **Start practice**, offers **Create from study material**, and keeps the six-topic offline library searchable. Learners with AI enabled can also start a quiz from a typed topic. The XP chip links to Progress. |
+| **Quiz** (activity) | The learner requests 5 or 10 questions, checks an A–D answer, and sees an explanation with **icon, text and colour** feedback. **Previous** restores checked feedback and unsubmitted choices. The animated summary separates mastery and XP and links to individual explanations or a review of missed answers. AI source labels and the report action remain visible during practice. |
 | **Progress** (statistics) | Total XP, today's XP against the daily cap, a 7-day XP bar chart (with a spoken summary for TalkBack), weekly streak, overall accuracy and per-topic mastery (New → Developing → Secure → Mastered). |
 | **Settings** | Difficulty, quiz length, weekly goal, sound and vibration, opt-in study reminder with quiet hours, theme (system/light/dark), larger text, AI on/off, age band, optional personal DeepSeek key. |
 | **My data** | What is stored (counts), retention period (30 / 90 / 365 days), delete a single topic, or **delete everything** (which also resets onboarding). |
@@ -53,22 +61,24 @@ CP3406 Assessment 2 presentation (*Designing for Trust: learner-data privacy and
 | 05 | **Reward learning, not screen time** | XP only for verified correct first answers with a daily cap; XP and mastery are always shown in separate cards; answer options are **shuffled** so the correct answer cannot be guessed by position. |
 | 06 | **Learner control** | *My data* shows what is stored, lets the learner change retention, delete a topic or delete everything; the age-aware consent flow sets AI to **off** by default for everyone. |
 
-**Data minimisation with DeepSeek.** The only data that leaves the device is the topic text, difficulty,
-question count and age band (`QuizPrompt`). Before sending, `PersonalDataRedactor` removes e-mail addresses,
-phone numbers and URLs a learner might type into the topic box. Scores, history, mastery and settings are never sent.
+**Data minimisation with DeepSeek.** For a topic quiz, DeepSeek receives the cleaned topic,
+difficulty, question count and age band. For a study material quiz, it receives the text excerpt
+the learner previews and confirms, along with the same quiz preferences and age band. The original
+file and filename stay on the device. Primoria removes common contact details from the text and
+asks the learner to check the excerpt for other private information. Scores and learning history
+stay on the device.
 
 ---
 
 ## Visual design
 
-The interface uses a custom design system rather than default Material colours (see `ui/theme` and `ui/components`):
+The interface uses a custom Material 3 palette and shared Compose components (see `ui/theme` and `ui/components`).
 
-* **Colour roles with meaning.** A quiet "editorial" look: near-neutral paper background, white hairline cards with no stacked shadows, and a deep indigo used only for actions; a clean graphite dark theme. **Amber is only ever effort/XP** and **teal is only ever mastery**, so learners can tell showing up from understanding; correctness is never shown in the progress bar, and teal is never used for a wrong answer.
+* **Colour.** A cream background and fine card borders keep the layout quiet. Cobalt marks primary actions. Green marks mastery and correct feedback, amber marks effort and XP, and muted red marks an answer to revisit.
 * **Typography.** Plus Jakarta Sans (SIL OFL, bundled in `res/font`, licence in `docs/licenses`) with a compact Material 3 type scale (hierarchy from weight and colour rather than size) and tabular numerals for XP, percentages and counters.
-* **Signature components.** Subject tiles with a colour and glyph per subject family (`SubjectArt`), segmented question progress, a slide-up feedback sheet, one overview card with concentric mastery/effort rings, and a 7-day effort chart where empty days are short neutral stubs (never full-height tracks that read as "full").
-* **Illustrations.** Four flat illustrations in the app palette (welcome, age band, loading, quiz summary), generated with OpenAI ImageGen via Codex and checked on light and dark backgrounds; stored as WebP in `res/drawable-nodpi`.
-* **Motion.** Cards press to 0.97 with a soft spring, rings animate from their previous value, questions slide in; no confetti, timers or slot-machine effects.
-* **Accessibility.** Feedback uses icon + words + colour; option results are exposed to TalkBack as state descriptions; charts and rings have spoken summaries; 48dp targets; a "Larger text" setting scales on top of the system font size.
+* **Layout and components.** The home screen uses a single high-emphasis practice card, a separate material entry, subject tiles and a weekly goal. Feedback sits under the answer choices. Progress uses separate mastery and effort cards plus a seven-day XP chart. The wide home layout puts practice and the library beside weekly progress and topic mastery.
+* **Illustration and motion.** The Home and Welcome artwork is drawn in Compose. Cards use a short press animation. The summary animates the score, emblem and metric cards, then presents the answer list for review.
+* **Accessibility.** Feedback uses icons, wording and colour. Options expose result states to TalkBack, the weekly chart exposes a text summary, and the larger-text setting scales on top of the system font size.
 
 The design system was drafted, then revised after a screenshot-based visual review (see *Acknowledgements*) and checked on phone, tablet, light and dark.
 
@@ -77,7 +87,7 @@ The design system was drafted, then revised after a screenshot-based visual revi
 ## Architecture
 
 ```
-ui/ (Compose screens + ViewModels, one immutable StateFlow per screen)
+ui/ (Compose screens + ViewModels with observable screen state)
  └─ depends on repository interfaces
 data/
  ├─ repository/   LearningRepository · ProgressRepository · PrivacyRepository · OfflineLibrary
@@ -93,7 +103,7 @@ domain/
 di/               Hilt modules (AppModule, NetworkModule, RepositoryModule)
 ```
 
-* **MVVM + Repository**: Composables are stateless (`XxxScreen(state, callbacks)`) with a thin `XxxRoute` that collects the ViewModel's `StateFlow` with `collectAsStateWithLifecycle()`.
+* **MVVM and repositories.** Route composables collect state with `collectAsStateWithLifecycle()` and connect screen actions to ViewModels. `QuizViewModel` holds draft selections and checked answers by question index. Room stores attempts when the learner checks an answer.
 * **Dependency injection** with **Hilt**: ViewModels depend on interfaces bound in `RepositoryModule`; tests replace whole modules with `@TestInstallIn`.
 * **Pure domain layer**: every learning rule is a side-effect-free Kotlin object, so it is unit-tested on the JVM.
 
@@ -102,13 +112,14 @@ di/               Hilt modules (AppModule, NetworkModule, RepositoryModule)
 * **Nested graphs**: onboarding is separate from `MainGraph`; finishing onboarding pops it off the back stack, and "Delete everything" clears the stack and returns to onboarding.
 * **Adaptive top-level navigation**: `NavigationBar` on phones, `NavigationRail` on medium/expanded widths (`WindowSizeClass`), with `saveState`/`restoreState` per tab.
 * **Deep link**: `primoria://quiz/{topic}` opens a quiz directly (e.g. `adb shell am start -d "primoria://quiz/Fractions"`).
-* Back handling: onboarding steps go back one step; leaving a quiz mid-way asks for confirmation (and honestly says checked answers are saved).
+* **Quiz navigation.** `QuizRoute` can carry the local ID of a saved material quiz. The Previous action restores question state in the same session. Summary review reads the checked answers and returns to the same result. Leaving an in-progress quiz with checked answers asks for confirmation.
 
 ### Advanced APIs
 * **DeepSeek** (OpenAI-compatible chat completions, JSON mode) via **Retrofit + OkHttp + kotlinx.serialization**. Replies are treated as untrusted: `QuizResponseParser` drops questions without exactly four distinct options, a valid answer index or an explanation.
 * **Room** (5 tables, foreign keys with cascade delete, indices, `@Upsert`, `@Transaction`, aggregate queries for daily XP and accuracy, a correlated sub-query that serves questions not yet answered correctly first, an **auto-migration v1→v2**, exported schemas).
 * **DataStore** for settings, **Android Keystore** (AES-GCM) for an optional personal API key, **WorkManager** for the opt-in reminder, **SplashScreen** API, and Material 3 dynamic **dark theme** and **larger text**.
-* **Offline first**: if AI is off, no key is set, or the network fails, the quiz falls back to saved questions and the bundled library, with a notice.
+* **Study material.** Android's Storage Access Framework opens a selected file. `StudyMaterialReader` extracts text on-device, using PDFBox for PDFs. `HomeViewModel` shows an excerpt before sending it, and `LearningRepository` stores the resulting questions in Room.
+* **Offline practice.** Topic quizzes can use bundled or previously saved questions when AI is off, the key is missing or generation fails. Previously generated material quizzes can be reopened from saved questions.
 
 ---
 
@@ -132,13 +143,18 @@ di/               Hilt modules (AppModule, NetworkModule, RepositoryModule)
 ./gradlew connectedDebugAndroidTest  # Room DAO + migration, repository, Compose UI and Hilt end-to-end tests
 ```
 
-| Suite (91 JVM + 29 instrumented tests, all passing) | What it covers |
+The latest verification recorded **93 JVM** and **35 Android instrumentation** passes. The device
+total includes two temporary acceptance checks used to exercise the Android file picker with a test
+DeepSeek response and to capture loading and recovery screens.
+
+| Test suite | What it covers |
 |---|---|
 | `domain/logic/*Test` | Mastery, XP cap, humane streaks and freezes, quiet hours, reminders, redaction, topic cleaning, retention, option shuffling |
 | `data/remote/*Test` | Response validation, refusals, prompt data-minimisation, real HTTP via **MockWebServer** (path, bearer header, JSON mode) |
-| `ui/*ViewModelTest` | Quiz state machine, onboarding consent rules, home input — with hand-written fakes |
+| `ui/*ViewModelTest` | Quiz state, restored draft and checked choices, single XP award per check, missed-answer review, onboarding consent rules and home input |
 | `PrimoriaDaoTest`, `MigrationTest` | Cascades, reported-question exclusion, daily aggregates, retention, v1→v2 migration |
-| `LearningRepositoryTest` | AI vs offline fallback, refusal handling, XP rules, reports, redaction before sending |
+| `LearningRepositoryTest` | AI and offline fallback, refusals, XP, reports, material consent and redaction, omission of the filename from requests, and reopening saved material quizzes offline |
+| `StudyMaterialReaderTest` | Local TXT, Markdown and PDF extraction, removal of common contact details, and a PDF with no readable text |
 | `ScreenComposeTest` | GUI tests: guardian gate, AI label/report, non-colour feedback semantics, effort/mastery summary, confirm dialogs |
 | `AppNavigationTest` | `@HiltAndroidTest` end-to-end: onboarding → AI quiz → summary → Progress; offline library without any DeepSeek call; delete everything → onboarding |
 
@@ -149,14 +165,14 @@ and DeepSeek always placing the correct answer first).
 ---
 
 ## Limitations and possible improvements
-* Questions are generated per quiz; there is no spaced-repetition scheduler yet.
+* The material reader supports files up to 8 MiB and previews up to 12,000 characters drawn from the first 12 pages of a PDF. Image-only PDFs require a text layer. AI question validation checks structure and answer consistency, so subject accuracy still needs review.
+* Practice history is built from saved answer attempts. Spaced repetition is a future improvement.
 * Reports are stored locally only — there is no moderation back-end to send them to.
-* My Assessment 2 recommended that model keys stay on a server (ACS Ethics 2.2(h)). This version has no server, so a developer key from the git-ignored `.env` can be compiled into a **local** build. It is never in GitHub; the `.env` is included only in the private LearnJCU submission zip so markers can try AI quizzes on an emulator. Learners can use their own Keystore-encrypted key instead, and a production release should route requests through a small server-side proxy.
+* My Assessment 2 recommended that model keys stay on a server (ACS Ethics 2.2(h)). This version has no server, so a developer key from the git-ignored `.env` can be compiled into a **local** build. The submission archive includes `.env.example`. Reviewers can provide their own DeepSeek key to evaluate live generation, and the bundled topics run offline immediately. Learners can use their own Keystore-encrypted key instead, and a production release should route requests through a small server-side proxy.
 * The offline library is small (6 topics × 6 questions).
 
 ## Acknowledgements and GenAI use
 * Quiz content is generated at runtime by **DeepSeek**; the offline library was written and checked by hand.
-* Generative AI tools (Claude Code, OpenAI Codex and Google Gemini) were used during development to help with code,
-  tests, UI review and the four in-app illustrations (OpenAI ImageGen via Codex), as described in the Generative AI
-  Use Declaration submitted with this assessment.
-  All generated code was reviewed, run and tested on an emulator.
+* Claude Code, OpenAI Codex and Google Gemini assisted with development, tests, design review and documentation.
+  Codex also helped implement the approved Android redesign and update this report and reflection. OpenAI ImageGen
+  assisted with illustration assets during development. A separate GenAI Use Declaration is required with the assessment.

@@ -8,6 +8,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.navigation
 import androidx.navigation.navDeepLink
+import androidx.navigation.toRoute
 import au.edu.jcu.zhangfan.primoria.ui.home.HomeRoute as HomeScreenRoute
 import au.edu.jcu.zhangfan.primoria.ui.onboarding.OnboardingRoute as OnboardingScreenRoute
 import au.edu.jcu.zhangfan.primoria.ui.privacy.MyDataRoute as MyDataScreenRoute
@@ -36,12 +37,13 @@ fun PrimoriaNavHost(
             composable<HomeRoute> {
                 HomeScreenRoute(
                     onStartQuiz = { topic -> navController.navigate(QuizRoute(topic)) },
+                    onStartSavedQuiz = { id, title -> navController.navigate(QuizRoute(title, id)) },
                     onOpenStats = { navController.navigateToTopLevel(TopLevelDestination.STATS) },
                     onOpenSettings = { navController.navigateToTopLevel(TopLevelDestination.SETTINGS) },
                 )
             }
             composable<StatsRoute> {
-                StatsScreenRoute(onStartQuiz = { topic -> navController.navigate(QuizRoute(topic)) })
+                StatsScreenRoute(onStartQuiz = { topic -> navController.navigate(QuizRoute(topic.title, topic.id)) })
             }
             composable<SettingsRoute> {
                 SettingsScreenRoute(onOpenMyData = { navController.navigate(MyDataRoute) })
@@ -51,12 +53,13 @@ fun PrimoriaNavHost(
             }
             composable<QuizRoute>(
                 deepLinks = listOf(navDeepLink<QuizRoute>(basePath = QUIZ_DEEP_LINK_BASE)),
-            ) {
+            ) { entry ->
+                val quiz = entry.toRoute<QuizRoute>()
                 QuizScreenRoute(
                     onClose = { navController.popBackStack() },
                     onTryTopic = { topic ->
                         // Replace the finished quiz so Back returns home rather than to old results.
-                        navController.navigate(QuizRoute(topic)) {
+                        navController.navigate(quiz.copy(topic = topic)) {
                             popUpTo<QuizRoute> { inclusive = true }
                         }
                     },

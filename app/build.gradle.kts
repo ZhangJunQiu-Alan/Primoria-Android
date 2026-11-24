@@ -109,6 +109,7 @@ dependencies {
     implementation(libs.retrofit.kotlinx.serialization)
     implementation(libs.okhttp)
     implementation(libs.kotlinx.serialization.json)
+    implementation("com.tom-roush:pdfbox-android:2.0.27.0")
 
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)

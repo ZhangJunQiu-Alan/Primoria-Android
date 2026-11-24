@@ -124,7 +124,7 @@ class ScreenComposeTest {
                 )
             }
         }
-        compose.onNodeWithText("4 of 5 correct").assertIsDisplayed()
+        compose.onNodeWithText("4 / 5").assertIsDisplayed()
         compose.onNodeWithText("+40 XP").assertIsDisplayed()
         compose.onNodeWithText("62%").assertIsDisplayed()
     }

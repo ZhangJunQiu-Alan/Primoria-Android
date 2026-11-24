@@ -10,6 +10,7 @@ data class TopicWithMasteryRow(
     val mastery: Double?,
     val attempts: Int?,
     val correct: Int?,
+    @ColumnInfo(name = "title_key") val titleKey: String,
 )
 
 data class DailyActivityRow(

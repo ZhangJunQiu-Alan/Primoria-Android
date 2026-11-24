@@ -6,7 +6,9 @@ import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
 import androidx.room.Room
 import au.edu.jcu.zhangfan.primoria.data.local.PrimoriaDatabase
+import au.edu.jcu.zhangfan.primoria.data.remote.ApiKeyProvider
 import au.edu.jcu.zhangfan.primoria.data.remote.DeepSeekApi
+import au.edu.jcu.zhangfan.primoria.data.remote.KeySource
 import au.edu.jcu.zhangfan.primoria.testing.FakeDeepSeekApi
 import dagger.Module
 import dagger.Provides
@@ -15,6 +17,8 @@ import dagger.hilt.components.SingletonComponent
 import dagger.hilt.testing.TestInstallIn
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import java.io.File
 import java.time.Clock
 import java.util.UUID
@@ -58,6 +62,26 @@ object TestNetworkModule {
 
     @Provides
     fun provideApi(fake: FakeDeepSeekApi): DeepSeekApi = fake
+
+    @Provides
+    @Singleton
+    fun provideApiKeyProvider(): ApiKeyProvider = object : ApiKeyProvider {
+        private var userKey: String? = null
+        private val source = MutableStateFlow(KeySource.BUILD)
+        override val keySource = source.asStateFlow()
+
+        override fun currentKey(): String = userKey ?: "test-only-key"
+
+        override fun saveUserKey(key: String) {
+            userKey = key.trim().takeIf { it.isNotEmpty() } ?: return
+            source.value = KeySource.USER
+        }
+
+        override fun clearUserKey() {
+            userKey = null
+            source.value = KeySource.BUILD
+        }
+    }
 
     @Provides
     @Named("deepseekModel")

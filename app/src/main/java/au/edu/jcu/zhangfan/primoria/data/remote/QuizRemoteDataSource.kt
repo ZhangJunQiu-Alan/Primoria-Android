@@ -18,11 +18,20 @@ class QuizRemoteDataSource @Inject constructor(
         difficulty: Difficulty,
         count: Int,
         ageGroup: AgeGroup,
-    ): ParsedQuiz {
+    ): ParsedQuiz = generate(QuizPrompt.messages(topic, difficulty, count, ageGroup), count)
+
+    suspend fun generateFromMaterial(
+        excerpt: String,
+        difficulty: Difficulty,
+        count: Int,
+        ageGroup: AgeGroup,
+    ): ParsedQuiz = generate(QuizPrompt.materialMessages(excerpt, difficulty, count, ageGroup), count)
+
+    private suspend fun generate(messages: List<ChatMessage>, count: Int): ParsedQuiz {
         val response = api.chat(
             ChatRequest(
                 model = model,
-                messages = QuizPrompt.messages(topic, difficulty, count, ageGroup),
+                messages = messages,
             ),
         )
         return when (val parsed = QuizResponseParser.parse(response.firstContent, maxQuestions = count)) {

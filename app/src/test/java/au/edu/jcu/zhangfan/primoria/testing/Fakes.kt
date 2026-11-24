@@ -52,6 +52,12 @@ class FakeLearningRepository(
         return loadResult
     }
 
+    override suspend fun loadSavedQuiz(topicId: Long, rawTopic: String, settings: UserSettings): QuizLoadResult =
+        loadQuiz(rawTopic, settings)
+
+    override suspend fun createMaterialQuiz(title: String, excerpt: String, settings: UserSettings): QuizLoadResult =
+        loadResult
+
     override suspend fun submitAnswer(
         question: QuizQuestion,
         chosenIndex: Int,

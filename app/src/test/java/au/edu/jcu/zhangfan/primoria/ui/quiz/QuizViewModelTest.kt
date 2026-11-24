@@ -201,12 +201,70 @@ class QuizViewModelTest {
 
             viewModel.next()
 
+            val result = viewModel.uiState.value as QuizUiState.Finished
             assertEquals(
                 "Mastery level for $attempts topic attempts",
                 QuizUiState.Finished("Volcanoes", 1, 1, 7, 0.9, expectedLevel, true),
-                viewModel.uiState.value,
+                result.copy(session = null),
             )
+            assertEquals(AnswerFeedback(question.correctIndex, true, 7), result.session?.answers?.get(0))
         }
+    }
+
+    @Test
+    fun `going back preserves checked answers and unsubmitted choices without earning more XP`() = runTest {
+        repository.loadResult = ready.copy(questions = listOf(question, question.copy(id = 43), question.copy(id = 44)))
+        val viewModel = createViewModel()
+        runCurrent()
+
+        viewModel.select(question.correctIndex)
+        viewModel.check()
+        runCurrent()
+        viewModel.next()
+        viewModel.select(2)
+        viewModel.previous()
+
+        val restored = viewModel.uiState.value as QuizUiState.Active
+        assertEquals(0, restored.index)
+        assertEquals(AnswerFeedback(question.correctIndex, true, 10), restored.feedback)
+        viewModel.check()
+        viewModel.next()
+        runCurrent()
+
+        val draft = viewModel.uiState.value as QuizUiState.Active
+        assertEquals(1, draft.index)
+        assertEquals(2, draft.selectedIndex)
+        assertEquals(null, draft.feedback)
+        assertEquals(10, draft.xpEarned)
+        assertEquals(1, repository.submittedAnswers.size)
+        assertEquals(listOf(true), sound.answerCalls)
+    }
+
+    @Test
+    fun `review missed answers traverses only mistakes and returns to the unchanged score`() = runTest {
+        repository.loadResult = ready.copy(questions = List(3) { question.copy(id = 42L + it) })
+        val viewModel = createViewModel()
+        runCurrent()
+
+        repeat(3) { index ->
+            val correct = index == 1
+            repository.answerResult = AnswerResult(correct, if (correct) 10 else 0, .25, index + 1, false)
+            viewModel.select(if (correct) question.correctIndex else 0)
+            viewModel.check()
+            runCurrent()
+            viewModel.next()
+        }
+        val summary = viewModel.uiState.value as QuizUiState.Finished
+        viewModel.openReview(null)
+        assertEquals(0, (viewModel.uiState.value as QuizUiState.Active).index)
+        viewModel.next()
+        assertEquals(2, (viewModel.uiState.value as QuizUiState.Active).index)
+        viewModel.previous()
+        assertEquals(0, (viewModel.uiState.value as QuizUiState.Active).index)
+        viewModel.next()
+        viewModel.next()
+        assertEquals(summary, viewModel.uiState.value)
+        assertEquals(3, repository.submittedAnswers.size)
     }
 
     @Test

@@ -84,6 +84,29 @@ class LearningRepositoryTest {
     }
 
     @Test
+    fun materialQuizRequiresConsentAndCanBeReopenedOffline() = runTest {
+        val title = "My local file name"
+        val excerpt = "Plants use photosynthesis to convert light into chemical energy. Contact: kid@school.edu."
+        val offline = aiOn.copy(aiConsent = false)
+
+        assertTrue(repository.createMaterialQuiz(title, excerpt, offline) is QuizLoadResult.Unavailable)
+        assertTrue(api.requests.isEmpty())
+
+        val generated = repository.createMaterialQuiz(title, excerpt, aiOn) as QuizLoadResult.Ready
+        val sent = api.requests.single().messages.joinToString(" ") { it.content }
+        assertTrue(sent.contains("chemical energy"))
+        assertTrue(!sent.contains(title))
+        assertTrue(!sent.contains("kid@school.edu"))
+        assertTrue(generated.fromStudyMaterial)
+        assertEquals(title, generated.topicTitle)
+
+        val reopened = repository.loadSavedQuiz(generated.topicId, title, offline) as QuizLoadResult.Ready
+        assertTrue(reopened.fromStudyMaterial)
+        assertEquals(generated.questions.map { it.id }.toSet(), reopened.questions.map { it.id }.toSet())
+        assertEquals(1, api.requests.size)
+    }
+
+    @Test
     fun refusal_isPassedToTheLearnerWithoutFallingBack() = runTest {
         api.reply = FakeDeepSeekApi.REFUSAL
 

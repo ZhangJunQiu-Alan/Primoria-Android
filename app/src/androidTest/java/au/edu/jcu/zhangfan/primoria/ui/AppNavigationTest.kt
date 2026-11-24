@@ -3,6 +3,7 @@ package au.edu.jcu.zhangfan.primoria.ui
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
@@ -48,7 +49,7 @@ class AppNavigationTest {
     }
 
     private fun completeOnboardingAsAdult(withAi: Boolean) {
-        compose.waitUntilAtLeastOneExists(hasText("Welcome to Primoria"), TIMEOUT)
+        compose.waitUntilAtLeastOneExists(hasText("Small quizzes. Big ideas."), TIMEOUT)
         compose.onNodeWithTag("onboarding_continue").performClick()
         compose.onNodeWithText("18 or older").performClick()
         compose.onNodeWithTag("onboarding_continue").performClick()
@@ -91,7 +92,7 @@ class AppNavigationTest {
         compose.onNodeWithText("No offline topics match your search.").assertIsDisplayed()
         compose.onNodeWithTag("topic_input").performTextReplacement("pHoto")
         compose.onNodeWithText("Linear equations").assertDoesNotExist()
-        compose.onNodeWithText("Photosynthesis").performScrollTo().performClick()
+        compose.onNode(hasText("Photosynthesis") and hasClickAction()).performScrollTo().performClick()
         compose.waitUntilAtLeastOneExists(hasText("Question 1 of 5"), TIMEOUT)
         compose.onNodeWithText("Offline library").assertIsDisplayed()
 
@@ -118,13 +119,13 @@ class AppNavigationTest {
 
         compose.onNodeWithText("Settings").performClick()
         compose.onNodeWithTag("open_my_data").performScrollTo().performClick()
-        compose.waitUntilAtLeastOneExists(hasText("Your learning history stays on this device"), TIMEOUT)
+        compose.waitUntilAtLeastOneExists(hasText("Stored on this device"), TIMEOUT)
         // The button is the last item of a lazy list, so scroll the list until it is composed.
         compose.onNode(hasScrollAction()).performScrollToNode(hasTestTag("delete_everything"))
         compose.onNodeWithTag("delete_everything").performClick()
         compose.onNodeWithTag("confirm_delete_everything").performClick()
 
-        compose.waitUntilAtLeastOneExists(hasText("Welcome to Primoria"), TIMEOUT)
+        compose.waitUntilAtLeastOneExists(hasText("Small quizzes. Big ideas."), TIMEOUT)
     }
 
     private companion object {

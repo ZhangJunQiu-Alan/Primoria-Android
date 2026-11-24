@@ -107,7 +107,7 @@ fun MyDataScreen(
         topBar = {
             TopAppBar(
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background),
-                title = { Text("My data") },
+                title = { Text("My data", style = MaterialTheme.typography.headlineMedium) },
                 navigationIcon = {
                     IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = "Back") }
                 },
@@ -122,26 +122,26 @@ fun MyDataScreen(
                 modifier = Modifier.fillMaxSize().padding(horizontal = 20.dp),
             ) {
                 item {
-                    PrimoriaCard(Modifier.fillMaxWidth().padding(top = 4.dp)) {
+                    PrimoriaCard(Modifier.fillMaxWidth().padding(top = 4.dp),
+                        containerColor = PrimoriaTheme.colors.masteryContainer, border = false) {
                         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                             Box(
                                 contentAlignment = Alignment.Center,
                                 modifier = Modifier.size(36.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primaryContainer),
                             ) { Icon(Icons.Outlined.VerifiedUser, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp)) }
                             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                Text("Your learning history stays on this device", style = MaterialTheme.typography.titleLarge)
+                                Text("Stored on this device", style = MaterialTheme.typography.titleLarge, color = PrimoriaTheme.colors.onMasteryContainer)
                                 Text(
-                                    "No account, ads, analytics or cloud backup. DeepSeek only receives the topic, " +
-                                        "difficulty and age band of a quiz you start.",
+                                                                        "Your answers, XP and mastery are saved locally. If you create a quiz from a file, DeepSeek receives the excerpt you confirm.",
                                     style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    color = PrimoriaTheme.colors.onMasteryContainer,
                                 )
                             }
                         }
                         state.counts?.let { counts ->
                             HorizontalDivider(Modifier.padding(vertical = 14.dp), color = PrimoriaTheme.colors.hairline)
                             Column(Modifier.testTag("data_counts"), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                                Text("STORED RIGHT NOW", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text("Storage summary", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 Text("${counts.topics} topics · ${counts.questions} questions", style = MaterialTheme.typography.bodyMedium.tabular())
                                 Text("${counts.attempts} answers · ${counts.reports} reports", style = MaterialTheme.typography.bodyMedium.tabular())
                             }
@@ -173,12 +173,11 @@ fun MyDataScreen(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-                item { SectionHeader("Topics", Modifier.padding(top = 12.dp)) }
+                item { SectionHeader("Saved topics", Modifier.padding(top = 12.dp)) }
                 if (state.topics.isEmpty()) {
                     item { Text("No topics stored.", style = MaterialTheme.typography.bodyMedium) }
                 }
-                item {
-                    // One grouped card; topics with no answers have nothing personal to delete.
+                if (state.topics.isNotEmpty()) item {
                     PrimoriaCard(Modifier.fillMaxWidth(), contentPadding = 4.dp) {
                         state.topics.forEachIndexed { index, topic ->
                             if (index > 0) HorizontalDivider(color = PrimoriaTheme.colors.hairline, modifier = Modifier.padding(horizontal = 16.dp))
@@ -196,7 +195,7 @@ fun MyDataScreen(
                                     Text(if (topic.attempts == 0) "No answers yet" else "${topic.attempts} answers")
                                 },
                                 trailingContent = {
-                                    if (topic.attempts > 0) {
+                                    if (topic.attempts > 0 || topic.isStudyMaterial) {
                                         IconButton(onClick = { topicToDelete = topic }) {
                                             Icon(Icons.Outlined.DeleteOutline, contentDescription = "Delete ${topic.title}")
                                         }
