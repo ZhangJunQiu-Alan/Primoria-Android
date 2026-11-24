@@ -1,5 +1,7 @@
 package au.edu.jcu.zhangfan.primoria.ui.app
 
+import androidx.compose.ui.unit.dp
+import au.edu.jcu.zhangfan.primoria.ui.theme.PrimoriaTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -75,8 +77,8 @@ private fun ReadyApp(onboardingComplete: Boolean, widthSizeClass: WindowWidthSiz
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         bottomBar = {
             if (showNavigation && !useRail) Column {
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                NavigationBar(containerColor = MaterialTheme.colorScheme.surfaceContainerLow) {
+                HorizontalDivider(color = PrimoriaTheme.colors.hairline)
+                NavigationBar(containerColor = PrimoriaTheme.colors.cardSurface, tonalElevation = 0.dp) {
                     TopLevelDestination.entries.forEach { destination ->
                         val selected = currentDestination.isOn(destination)
                         NavigationBarItem(
@@ -86,7 +88,8 @@ private fun ReadyApp(onboardingComplete: Boolean, widthSizeClass: WindowWidthSiz
                             label = { Text(destination.label) },
                             colors = NavigationBarItemDefaults.colors(
                                 indicatorColor = MaterialTheme.colorScheme.primaryContainer,
-                                selectedIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                                selectedIconColor = MaterialTheme.colorScheme.primary,
+                                selectedTextColor = MaterialTheme.colorScheme.onSurface,
                             ),
                         )
                     }

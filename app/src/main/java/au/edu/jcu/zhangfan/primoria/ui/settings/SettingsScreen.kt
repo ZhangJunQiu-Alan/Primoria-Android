@@ -1,5 +1,18 @@
 package au.edu.jcu.zhangfan.primoria.ui.settings
 
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.runtime.remember
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.draw.shadow
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.border
+import au.edu.jcu.zhangfan.primoria.ui.theme.PrimoriaTheme
+import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Build
@@ -23,12 +36,9 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
-import androidx.compose.material.icons.outlined.Shield
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.ListItem
-import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -37,7 +47,7 @@ import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
-import androidx.compose.material3.Switch
+import au.edu.jcu.zhangfan.primoria.ui.components.PrimoriaSwitch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -46,7 +56,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.core.content.ContextCompat
@@ -65,7 +75,6 @@ import au.edu.jcu.zhangfan.primoria.domain.model.ThemeMode
 import au.edu.jcu.zhangfan.primoria.domain.model.UserSettings
 import au.edu.jcu.zhangfan.primoria.ui.components.ContentColumn
 import au.edu.jcu.zhangfan.primoria.ui.components.PrimoriaCard
-import au.edu.jcu.zhangfan.primoria.ui.components.SectionHeader
 
 @Composable
 fun SettingsRoute(
@@ -124,11 +133,11 @@ fun SettingsScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .verticalScroll(rememberScrollState())
-                    .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 24.dp),
+                    .padding(start = 20.dp, end = 20.dp, top = 12.dp, bottom = 32.dp),
             ) {
-                Text("Settings", style = MaterialTheme.typography.headlineLarge, modifier = Modifier.padding(horizontal = 4.dp, vertical = 8.dp))
+                Text("Settings", style = MaterialTheme.typography.displaySmall, modifier = Modifier.padding(top = 16.dp))
                 SettingsGroup("Learning") {
-                Text("Difficulty", style = MaterialTheme.typography.titleSmall)
+                FieldLabel("Difficulty")
                 SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
                     Difficulty.entries.forEachIndexed { index, difficulty ->
                         SegmentedButton(
@@ -139,7 +148,7 @@ fun SettingsScreen(
                         ) { Text(difficulty.label) }
                     }
                 }
-                Text("Questions per quiz", style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(top = 8.dp))
+                FieldLabel("Questions per quiz", Modifier.padding(top = 8.dp))
                 SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
                     QUIZ_LENGTHS.forEachIndexed { index, count ->
                         SegmentedButton(
@@ -150,20 +159,16 @@ fun SettingsScreen(
                         ) { Text("$count") }
                     }
                 }
-                Text(
+                FieldLabel(
                     "Weekly goal: ${settings.weeklyGoalDays} active ${if (settings.weeklyGoalDays == 1) "day" else "days"}",
-                    style = MaterialTheme.typography.labelLarge,
-                    modifier = Modifier.padding(top = 8.dp),
+                    Modifier.padding(top = 8.dp),
                 )
-                Slider(
+                PrimoriaSlider(
                     value = settings.weeklyGoalDays.toFloat(),
                     onValueChange = { value -> onUpdate { it.copy(weeklyGoalDays = value.toInt()) } },
                     valueRange = 1f..7f,
                     steps = 5,
-                    colors = SliderDefaults.colors(
-                        inactiveTrackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
-                    ),
-                    modifier = Modifier.semantics { contentDescription = "Weekly goal in active days" },
+                    description = "Weekly goal in active days",
                 )
                 Row(Modifier.fillMaxWidth()) {
                     Text("1 day", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -202,17 +207,16 @@ fun SettingsScreen(
                     )
                 }
                 if (settings.reminderEnabled) {
-                    Text("Remind me at ${hourLabel(settings.reminderHour)}", style = MaterialTheme.typography.labelLarge)
-                    Slider(
+                    FieldLabel("Remind me at ${hourLabel(settings.reminderHour)}")
+                    PrimoriaSlider(
                         value = settings.reminderHour.toFloat(),
                         onValueChange = { onReminderHourChange(it.toInt()) },
                         valueRange = 7f..20f,
                         steps = 12,
-                        colors = SliderDefaults.colors(inactiveTrackColor = MaterialTheme.colorScheme.surfaceContainerHighest),
-                        modifier = Modifier.semantics { contentDescription = "Reminder time" },
+                        description = "Reminder time",
                     )
                 }
-                Text("Quiet hours start", style = MaterialTheme.typography.titleSmall)
+                FieldLabel("Quiet hours start")
                 SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
                     QUIET_STARTS.forEachIndexed { index, hour ->
                         SegmentedButton(
@@ -231,7 +235,7 @@ fun SettingsScreen(
 
                 }
                 SettingsGroup("Appearance & accessibility") {
-                Text("Theme", style = MaterialTheme.typography.titleSmall)
+                FieldLabel("Theme")
                 SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
                     ThemeMode.entries.forEachIndexed { index, mode ->
                         SegmentedButton(
@@ -257,7 +261,7 @@ fun SettingsScreen(
                     if (on && settings.ageGroup == AgeGroup.TEEN) confirmTeenAi = true
                     else onUpdate { it.copy(aiConsent = on) }
                 }
-                Text("Age band", style = MaterialTheme.typography.titleSmall)
+                FieldLabel("Age band")
                 SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
                     AgeGroup.entries.forEachIndexed { index, group ->
                         SegmentedButton(
@@ -271,36 +275,45 @@ fun SettingsScreen(
                         ) { Text(group.label) }
                     }
                 }
-                ListItem(
-                    headlineContent = { Text("DeepSeek key") },
-                    supportingContent = {
+                HorizontalDivider(Modifier.padding(vertical = 4.dp), color = PrimoriaTheme.colors.hairline)
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                    Column(Modifier.weight(1f).padding(end = 12.dp)) {
+                        Text("DeepSeek key", style = MaterialTheme.typography.titleLarge)
                         Text(
                             when (state.keySource) {
                                 KeySource.USER -> "Using your own key, encrypted on this device."
                                 KeySource.BUILD -> "Using the developer key built into this copy."
                                 KeySource.NONE -> "No key set — quizzes use saved and offline questions."
                             },
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
-                    },
-                    colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-                    trailingContent = {
-                        if (state.keySource == KeySource.USER) {
-                            TextButton(onClick = onClearKey) { Text("Remove") }
-                        } else {
-                            TextButton(onClick = { editingKey = true }) { Text("Add") }
-                        }
-                    },
-                )
-                ListItem(
-                    headlineContent = { Text("My data") },
-                    supportingContent = { Text("See, expire or delete everything Primoria stores.") },
-                    leadingContent = { Icon(Icons.Outlined.Shield, null) },
-                    trailingContent = { Icon(Icons.AutoMirrored.Outlined.KeyboardArrowRight, null) },
+                    }
+                    if (state.keySource == KeySource.USER) {
+                        TextButton(onClick = onClearKey) { Text("Remove") }
+                    } else {
+                        TextButton(onClick = { editingKey = true }) { Text("Add") }
+                    }
+                }
+                HorizontalDivider(Modifier.padding(vertical = 4.dp), color = PrimoriaTheme.colors.hairline)
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 56.dp)
                         .toggleable(value = false, onValueChange = { onOpenMyData() }, role = Role.Button)
                         .testTag("open_my_data"),
-                    colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-                )
+                ) {
+                    Column(Modifier.weight(1f).padding(end = 12.dp)) {
+                        Text("My data", style = MaterialTheme.typography.titleLarge)
+                        Text(
+                            "See, expire or delete everything Primoria stores.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    Icon(Icons.AutoMirrored.Outlined.KeyboardArrowRight, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
                 }
             }
     }
@@ -336,15 +349,62 @@ fun SettingsScreen(
     }
 }
 
-/** A titled card grouping related settings, so the screen scans as a few calm blocks. */
+/** A quiet uppercase label above one card of related settings. */
 @Composable
 private fun SettingsGroup(title: String, content: @Composable ColumnScope.() -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        SectionHeader(title, Modifier.padding(horizontal = 4.dp))
-        PrimoriaCard(Modifier.fillMaxWidth(), contentPadding = 18.dp) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(
+            title.uppercase(),
+            style = MaterialTheme.typography.labelMedium.copy(letterSpacing = 0.8.sp),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(start = 4.dp).semantics { heading() },
+        )
+        PrimoriaCard(Modifier.fillMaxWidth(), contentPadding = 16.dp) {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp), content = content)
         }
     }
+}
+
+@Composable
+private fun FieldLabel(text: String, modifier: Modifier = Modifier) {
+    Text(text, style = MaterialTheme.typography.titleLarge, modifier = modifier)
+}
+
+/** Round thumb and a light track, matching the rest of the rounded UI. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun PrimoriaSlider(
+    value: Float,
+    onValueChange: (Float) -> Unit,
+    valueRange: ClosedFloatingPointRange<Float>,
+    steps: Int,
+    description: String,
+) {
+    val colors = SliderDefaults.colors(
+        inactiveTrackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+        activeTickColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.6f),
+        inactiveTickColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
+    )
+    val interaction = remember { MutableInteractionSource() }
+    Slider(
+        value = value,
+        onValueChange = onValueChange,
+        valueRange = valueRange,
+        steps = steps,
+        colors = colors,
+        interactionSource = interaction,
+        thumb = {
+            Box(
+                Modifier
+                    .size(22.dp)
+                    .shadow(2.dp, CircleShape)
+                    .background(PrimoriaTheme.colors.cardSurface, CircleShape)
+                    .border(6.dp, MaterialTheme.colorScheme.primary, CircleShape),
+            )
+        },
+        track = { state -> SliderDefaults.Track(sliderState = state, colors = colors, thumbTrackGapSize = 0.dp, modifier = Modifier.height(6.dp)) },
+        modifier = Modifier.semantics { contentDescription = description },
+    )
 }
 
 private val QUIZ_LENGTHS = listOf(5, 10)
@@ -357,6 +417,8 @@ private fun hourLabel(hour: Int): String = "%02d:00".format(hour)
 private fun segmentedColors() = SegmentedButtonDefaults.colors(
     activeContainerColor = MaterialTheme.colorScheme.primaryContainer,
     activeContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+    activeBorderColor = MaterialTheme.colorScheme.outlineVariant,
+    inactiveBorderColor = MaterialTheme.colorScheme.outlineVariant,
 )
 
 @Composable
@@ -377,10 +439,10 @@ private fun SwitchRow(
             .testTag(testTag),
     ) {
         Column(Modifier.weight(1f).padding(end = 16.dp)) {
-            Text(title, style = MaterialTheme.typography.titleMedium)
+            Text(title, style = MaterialTheme.typography.titleLarge)
             Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
-        Switch(checked = checked, onCheckedChange = null)
+        PrimoriaSwitch(checked = checked)
     }
 }
 

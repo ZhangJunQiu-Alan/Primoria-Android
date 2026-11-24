@@ -23,7 +23,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -66,35 +65,25 @@ fun rememberPressScale(interactionSource: MutableInteractionSource): Float {
 }
 
 /**
- * The standard Primoria card: white on warm paper with a hairline edge and a faint indigo
- * shadow in light mode; tonal with a hairline and no shadow in dark mode.
+ * The standard Primoria card: white on paper with a single hairline edge and no shadow, so
+ * hierarchy comes from spacing and type rather than stacked borders and elevation.
  */
 @Composable
 fun PrimoriaCard(
     modifier: Modifier = Modifier,
     onClick: (() -> Unit)? = null,
-    shape: Shape = RoundedCornerShape(20.dp),
+    shape: Shape = RoundedCornerShape(18.dp),
     containerColor: Color = PrimoriaTheme.colors.cardSurface,
     contentColor: Color = MaterialTheme.colorScheme.onSurface,
     border: Boolean = true,
-    contentPadding: Dp = 20.dp,
+    contentPadding: Dp = 18.dp,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val colors = PrimoriaTheme.colors
     val interaction = remember { MutableInteractionSource() }
     val scale = if (onClick != null) rememberPressScale(interaction) else 1f
-    val shadowModifier = if (!colors.isDark && border) {
-        Modifier.shadow(
-            elevation = 6.dp,
-            shape = shape,
-            ambientColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.10f),
-            spotColor = Color(0xFF151821).copy(alpha = 0.08f),
-        )
-    } else {
-        Modifier
-    }
     val inner: @Composable () -> Unit = { Column(Modifier.padding(contentPadding), content = content) }
-    val outer = modifier.graphicsLayer { scaleX = scale; scaleY = scale }.then(shadowModifier)
+    val outer = modifier.graphicsLayer { scaleX = scale; scaleY = scale }
     val stroke = if (border) BorderStroke(1.dp, colors.hairline) else null
     if (onClick != null) {
         Surface(

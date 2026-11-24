@@ -5,6 +5,7 @@ import androidx.compose.material.icons.outlined.AccountBalance
 import androidx.compose.material.icons.outlined.AutoStories
 import androidx.compose.material.icons.outlined.Biotech
 import androidx.compose.material.icons.outlined.Calculate
+import androidx.compose.material.icons.outlined.Casino
 import androidx.compose.material.icons.outlined.Code
 import androidx.compose.material.icons.outlined.Eco
 import androidx.compose.material.icons.outlined.Language
@@ -39,7 +40,7 @@ object SubjectArt {
         Family(listOf("force", "motion", "speed", "energy", "physics"), Icons.Outlined.Speed, 2),
         Family(listOf("water", "ocean", "rain", "river"), Icons.Outlined.WaterDrop, 5),
         Family(listOf("equation", "algebra", "math", "geometry", "fraction", "calcul"), Icons.Outlined.Calculate, 3),
-        Family(listOf("probab", "statistic", "data"), Icons.Outlined.Calculate, 6),
+        Family(listOf("probab", "statistic", "data", "chance"), Icons.Outlined.Casino, 6),
         Family(listOf("algorithm", "program", "code", "computer", "python", "kotlin"), Icons.Outlined.Code, 0),
         Family(listOf("history", "war", "revolution", "empire", "ancient"), Icons.Outlined.AccountBalance, 6),
         Family(listOf("geograph", "country", "map", "continent"), Icons.Outlined.Public, 5),

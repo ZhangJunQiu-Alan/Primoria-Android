@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
@@ -35,7 +34,6 @@ import androidx.compose.material.icons.automirrored.outlined.ArrowForward
 import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.Bolt
 import androidx.compose.material.icons.outlined.Clear
-import androidx.compose.material.icons.outlined.CloudOff
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -52,8 +50,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawWithContent
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.testTag
@@ -74,7 +70,6 @@ import au.edu.jcu.zhangfan.primoria.ui.components.SectionHeader
 import au.edu.jcu.zhangfan.primoria.ui.components.SubjectArt
 import au.edu.jcu.zhangfan.primoria.ui.components.WeeklyGoalRow
 import au.edu.jcu.zhangfan.primoria.ui.components.animatedProgress
-import au.edu.jcu.zhangfan.primoria.ui.components.gradientBackground
 import au.edu.jcu.zhangfan.primoria.ui.theme.PrimoriaTheme
 import au.edu.jcu.zhangfan.primoria.ui.theme.tabular
 import java.time.LocalTime
@@ -113,94 +108,105 @@ fun HomeScreen(
 ) {
     val greeting = remember { greetingFor(LocalTime.now()) }
     val listState = rememberLazyListState()
-    val scrolledPastHero by remember { derivedStateOf { listState.firstVisibleItemIndex > 0 } }
+    val scrolled by remember { derivedStateOf { listState.firstVisibleItemIndex > 0 || listState.firstVisibleItemScrollOffset > 0 } }
     Box(Modifier.fillMaxSize()) {
-    Box(Modifier.fillMaxSize().imePadding()) {
         LazyColumn(
             state = listState,
-            verticalArrangement = Arrangement.spacedBy(24.dp),
-            contentPadding = PaddingValues(bottom = 24.dp),
-            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(bottom = 32.dp),
+            modifier = Modifier.fillMaxSize().imePadding(),
         ) {
             item {
-                HeroHeader(state, greeting, onOpenStats, onOpenSettings)
-            }
-            item {
                 ContentColumn {
-                PromptBar(
-                    topicInput = topicInput,
-                    canStart = canStart,
-                    aiEnabled = state.aiEnabled,
-                    loading = state.loading,
-                    onTopicInputChange = onTopicInputChange,
-                    onSubmit = onSubmitTopic,
-                    modifier = Modifier.padding(horizontal = 16.dp).offset(y = (-40).dp),
-                )
+                    Column(
+                        Modifier.windowInsetsPadding(WindowInsets.statusBars).padding(start = 20.dp, end = 20.dp, top = 12.dp),
+                    ) {
+                        TopBar(state, onOpenStats)
+                        Spacer(Modifier.height(28.dp))
+                        Text(greeting, style = MaterialTheme.typography.displaySmall)
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            "What would you like to understand today?",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Spacer(Modifier.height(20.dp))
+                        PromptBar(
+                            topicInput = topicInput,
+                            canStart = canStart,
+                            aiEnabled = state.aiEnabled,
+                            loading = state.loading,
+                            onTopicInputChange = onTopicInputChange,
+                            onSubmit = onSubmitTopic,
+                        )
+                    }
                 }
             }
             if (state.loading) {
-                item { ContentColumn { LinearProgressIndicator(Modifier.fillMaxWidth().padding(horizontal = 16.dp)) } }
+                item { ContentColumn { LinearProgressIndicator(Modifier.fillMaxWidth().padding(20.dp)) } }
             } else {
-                item {
-                    ContentColumn {
-                    Column(Modifier.offset(y = (-40).dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        SectionHeader("Continue learning", Modifier.padding(horizontal = 20.dp))
-                        if (state.recentTopics.isEmpty()) {
-                            PrimoriaCard(Modifier.fillMaxWidth().padding(horizontal = 16.dp), border = false, containerColor = MaterialTheme.colorScheme.surfaceContainerLow) {
-                                Text(
-                                    "Topics you practise will appear here, with your mastery for each.",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            }
-                        } else {
-                            LazyRow(
-                                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                                contentPadding = PaddingValues(horizontal = 16.dp),
-                            ) {
-                                val single = state.recentTopics.size == 1
-                                items(state.recentTopics, key = { it.id }) { topic ->
-                                    TopicCard(
-                                        topic,
-                                        onClick = { onPickTopic(topic.title) },
-                                        modifier = if (single) Modifier.fillParentMaxWidth() else Modifier.width(272.dp),
-                                    )
+                state.streak?.let { streak ->
+                    item {
+                        ContentColumn {
+                            PrimoriaCard(
+                                onClick = onOpenSettings,
+                                contentPadding = 16.dp,
+                                modifier = Modifier.fillMaxWidth().padding(start = 20.dp, end = 20.dp, top = 24.dp),
+                            ) { WeeklyGoalRow(streak, ringSize = 56) }
+                        }
+                    }
+                }
+                if (state.recentTopics.isNotEmpty()) {
+                    item {
+                        ContentColumn {
+                            Column(Modifier.padding(top = 32.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                SectionHeader("Continue learning", Modifier.padding(horizontal = 20.dp))
+                                LazyRow(
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                    contentPadding = PaddingValues(horizontal = 20.dp),
+                                ) {
+                                    val single = state.recentTopics.size == 1
+                                    items(state.recentTopics, key = { it.id }) { topic ->
+                                        TopicCard(
+                                            topic,
+                                            onClick = { onPickTopic(topic.title) },
+                                            modifier = if (single) Modifier.fillParentMaxWidth() else Modifier.width(264.dp),
+                                        )
+                                    }
                                 }
                             }
                         }
-                    }
                     }
                 }
                 item {
                     ContentColumn {
-                    Column(Modifier.offset(y = (-40).dp).padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        SectionHeader("Offline library", Modifier.padding(horizontal = 4.dp))
-                        Text(
-                            "Hand-checked questions that work without internet.",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(horizontal = 4.dp),
-                        )
-                        state.libraryTopics.chunked(2).forEach { pair ->
-                            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                                pair.forEach { title ->
-                                    LibraryTile(title, onClick = { onPickTopic(title) }, modifier = Modifier.weight(1f))
+                        Column(Modifier.padding(start = 20.dp, end = 20.dp, top = 32.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                SectionHeader("Offline library")
+                                Text(
+                                    "Hand-checked questions that work without internet.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                            state.libraryTopics.chunked(2).forEach { pair ->
+                                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                    pair.forEach { title ->
+                                        LibraryTile(title, onClick = { onPickTopic(title) }, modifier = Modifier.weight(1f))
+                                    }
+                                    if (pair.size == 1) Spacer(Modifier.weight(1f))
                                 }
-                                if (pair.size == 1) Spacer(Modifier.weight(1f))
                             }
                         }
-                    }
                     }
                 }
             }
         }
-    }
-        // Once the hero has scrolled away, give the status bar a solid backdrop so icons stay legible.
-        AnimatedVisibility(visible = scrolledPastHero, enter = fadeIn(), exit = fadeOut()) {
+        // Once content scrolls under the status bar, give it a solid backdrop so icons stay legible.
+        AnimatedVisibility(visible = scrolled, enter = fadeIn(), exit = fadeOut()) {
             Box(
                 Modifier
                     .fillMaxWidth()
-                    .background(MaterialTheme.colorScheme.background.copy(alpha = 0.96f))
+                    .background(MaterialTheme.colorScheme.background)
                     .windowInsetsTopHeight(WindowInsets.statusBars),
             )
         }
@@ -214,66 +220,43 @@ private fun greetingFor(time: LocalTime): String = when (time.hour) {
 }
 
 @Composable
-private fun HeroHeader(state: HomeUiState, greeting: String, onOpenStats: () -> Unit, onOpenSettings: () -> Unit) {
+private fun TopBar(state: HomeUiState, onOpenStats: () -> Unit) {
     val colors = PrimoriaTheme.colors
-    val fade = MaterialTheme.colorScheme.background
-    Box(
-        Modifier
-            .fillMaxWidth()
-            .gradientBackground(colors.heroGradient)
-            // Fade the wash into the page so the prompt bar floats over a soft edge, not a seam.
-            .drawWithContent {
-                drawContent()
-                drawRect(
-                    Brush.verticalGradient(listOf(Color.Transparent, fade), startY = size.height - 110.dp.toPx(), endY = size.height),
-                )
-            }
-            .windowInsetsPadding(WindowInsets.statusBars)
-            .padding(top = 16.dp, bottom = 64.dp),
-    ) {
-        ContentColumn {
-        Column(Modifier.padding(horizontal = 20.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("Primoria", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.primary)
-                Spacer(Modifier.weight(1f))
-                Surface(
-                    onClick = onOpenStats,
-                    shape = RoundedCornerShape(999.dp),
-                    color = colors.effortContainer,
-                    contentColor = colors.onEffortContainer,
-                    modifier = Modifier.semantics { contentDescription = "${state.xpToday} of ${state.dailyXpCap} XP today. Open progress" },
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                    ) {
-                        Icon(Icons.Outlined.Bolt, null, tint = colors.effort, modifier = Modifier.size(18.dp))
-                        Text(
-                            "${state.xpToday} / ${state.dailyXpCap} XP today",
-                            style = MaterialTheme.typography.labelLarge.tabular(),
-                            modifier = Modifier.padding(start = 4.dp),
-                        )
-                    }
-                }
-            }
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(greeting, style = MaterialTheme.typography.displaySmall)
-                Text(
-                    "What would you like to understand today?",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            state.streak?.let { streak ->
-                Surface(
-                    onClick = onOpenSettings,
-                    shape = RoundedCornerShape(24.dp),
-                    color = MaterialTheme.colorScheme.surfaceContainerLowest.copy(alpha = if (colors.isDark) 0.35f else 0.7f),
-                ) {
-                    WeeklyGoalRow(streak, Modifier.padding(16.dp))
-                }
-            }
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier.size(28.dp).clip(RoundedCornerShape(9.dp)).background(MaterialTheme.colorScheme.primary),
+        ) {
+            Text(
+                "P",
+                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.ExtraBold),
+                color = MaterialTheme.colorScheme.onPrimary,
+            )
         }
+        Text(
+            "Primoria",
+            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+            modifier = Modifier.padding(start = 10.dp),
+        )
+        Spacer(Modifier.weight(1f))
+        Surface(
+            onClick = onOpenStats,
+            shape = RoundedCornerShape(999.dp),
+            color = colors.effortContainer,
+            contentColor = colors.onEffortContainer,
+            modifier = Modifier.semantics { contentDescription = "${state.xpToday} of ${state.dailyXpCap} XP today. Open progress" },
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(start = 8.dp, end = 12.dp, top = 6.dp, bottom = 6.dp),
+            ) {
+                Icon(Icons.Outlined.Bolt, null, tint = colors.effort, modifier = Modifier.size(16.dp))
+                Text(
+                    "${state.xpToday} / ${state.dailyXpCap} XP",
+                    style = MaterialTheme.typography.labelMedium.tabular(),
+                    modifier = Modifier.padding(start = 4.dp),
+                )
+            }
         }
     }
 }
@@ -293,20 +276,21 @@ private fun PromptBar(
         focusManager.clearFocus()
         if (canStart) onSubmit()
     }
-    Column(modifier, verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        PrimoriaCard(shape = RoundedCornerShape(22.dp), contentPadding = 6.dp, modifier = Modifier.fillMaxWidth()) {
+    val primary = MaterialTheme.colorScheme.primary
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        PrimoriaCard(shape = RoundedCornerShape(18.dp), contentPadding = 6.dp, modifier = Modifier.fillMaxWidth()) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 TextField(
                     value = topicInput,
                     onValueChange = onTopicInputChange,
                     placeholder = { Text("Any topic, e.g. black holes", maxLines = 1, overflow = TextOverflow.Ellipsis) },
                     singleLine = true,
-                    textStyle = MaterialTheme.typography.titleMedium,
-                    leadingIcon = { Icon(Icons.Outlined.AutoAwesome, null, tint = MaterialTheme.colorScheme.primary) },
+                    textStyle = MaterialTheme.typography.bodyLarge,
+                    leadingIcon = { Icon(Icons.Outlined.AutoAwesome, null, tint = primary, modifier = Modifier.size(20.dp)) },
                     trailingIcon = {
                         if (topicInput.isNotEmpty()) {
                             IconButton(onClick = { onTopicInputChange("") }) {
-                                Icon(Icons.Outlined.Clear, contentDescription = "Clear topic")
+                                Icon(Icons.Outlined.Clear, contentDescription = "Clear topic", modifier = Modifier.size(20.dp))
                             }
                         }
                     },
@@ -323,33 +307,25 @@ private fun PromptBar(
                 FilledIconButton(
                     onClick = submit,
                     enabled = canStart,
-                    shape = RoundedCornerShape(16.dp),
-                    colors = IconButtonDefaults.filledIconButtonColors(containerColor = MaterialTheme.colorScheme.primary),
-                    modifier = Modifier.size(52.dp).testTag("start_quiz"),
+                    shape = RoundedCornerShape(14.dp),
+                    colors = IconButtonDefaults.filledIconButtonColors(
+                        containerColor = primary,
+                        disabledContainerColor = primary.copy(alpha = 0.08f),
+                        disabledContentColor = primary.copy(alpha = 0.35f),
+                    ),
+                    modifier = Modifier.size(46.dp).testTag("start_quiz"),
                 ) {
-                    Icon(Icons.AutoMirrored.Outlined.ArrowForward, contentDescription = "Start a quiz")
+                    Icon(Icons.AutoMirrored.Outlined.ArrowForward, contentDescription = "Start a quiz", modifier = Modifier.size(20.dp))
                 }
             }
         }
         if (!loading) {
-            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 8.dp)) {
-                Icon(
-                    if (aiEnabled) Icons.Outlined.AutoAwesome else Icons.Outlined.CloudOff,
-                    null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(14.dp),
-                )
-                Text(
-                    if (aiEnabled) {
-                        "AI writes 5 fresh questions. Only your topic is sent to DeepSeek."
-                    } else {
-                        "AI is off — quizzes use saved and offline questions. Turn it on in Settings."
-                    },
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(start = 6.dp),
-                )
-            }
+            Text(
+                if (aiEnabled) "AI writes 5 fresh questions · only your topic is shared" else "AI is off · quizzes use offline questions",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 6.dp),
+            )
         }
     }
 }
@@ -358,12 +334,12 @@ private fun PromptBar(
 private fun TopicCard(topic: TopicSummary, onClick: () -> Unit, modifier: Modifier = Modifier) {
     val subject = SubjectArt.colors(topic.title)
     val progress = animatedProgress(topic.mastery.toFloat())
-    PrimoriaCard(onClick = onClick, shape = RoundedCornerShape(22.dp), contentPadding = 16.dp, modifier = modifier) {
+    PrimoriaCard(onClick = onClick, contentPadding = 16.dp, modifier = modifier) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             Box(
                 contentAlignment = Alignment.Center,
-                modifier = Modifier.size(44.dp).clip(RoundedCornerShape(14.dp)).background(subject.container),
-            ) { Icon(SubjectArt.icon(topic.title), null, tint = subject.content, modifier = Modifier.size(22.dp)) }
+                modifier = Modifier.size(40.dp).clip(RoundedCornerShape(12.dp)).background(subject.container),
+            ) { Icon(SubjectArt.icon(topic.title), null, tint = subject.content, modifier = Modifier.size(20.dp)) }
             Column(Modifier.weight(1f)) {
                 Text(topic.title, style = MaterialTheme.typography.titleLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Text(
@@ -379,19 +355,19 @@ private fun TopicCard(topic: TopicSummary, onClick: () -> Unit, modifier: Modifi
             Box(
                 Modifier
                     .weight(1f)
-                    .height(6.dp)
+                    .height(4.dp)
                     .clip(RoundedCornerShape(999.dp))
-                    .background(MaterialTheme.colorScheme.surfaceContainerHigh),
+                    .background(MaterialTheme.colorScheme.surfaceContainerHighest),
             ) {
                 Box(
                     Modifier
                         .fillMaxWidth(progress)
-                        .height(6.dp)
+                        .height(4.dp)
                         .clip(RoundedCornerShape(999.dp))
                         .background(PrimoriaTheme.colors.mastery),
                 )
             }
-            Text("${(topic.mastery * 100).roundToInt()}%", style = MaterialTheme.typography.labelLarge.tabular(), color = PrimoriaTheme.colors.mastery)
+            Text("${(topic.mastery * 100).roundToInt()}%", style = MaterialTheme.typography.labelMedium.tabular(), color = PrimoriaTheme.colors.mastery)
         }
     }
 }
@@ -399,23 +375,13 @@ private fun TopicCard(topic: TopicSummary, onClick: () -> Unit, modifier: Modifi
 @Composable
 private fun LibraryTile(title: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
     val subject = SubjectArt.colors(title)
-    PrimoriaCard(
-        onClick = onClick,
-        shape = RoundedCornerShape(22.dp),
-        containerColor = subject.container,
-        contentColor = subject.content,
-        border = false,
-        contentPadding = 16.dp,
-        modifier = modifier.height(116.dp),
-    ) {
+    PrimoriaCard(onClick = onClick, contentPadding = 16.dp, modifier = modifier.height(128.dp)) {
         Box(
             contentAlignment = Alignment.Center,
-            modifier = Modifier
-                .size(36.dp)
-                .clip(RoundedCornerShape(12.dp))
-                .background(PrimoriaTheme.colors.cardSurface.copy(alpha = 0.75f)),
-        ) { Icon(SubjectArt.icon(title), null, modifier = Modifier.size(20.dp)) }
+            modifier = Modifier.size(40.dp).clip(RoundedCornerShape(12.dp)).background(subject.container),
+        ) { Icon(SubjectArt.icon(title), null, tint = subject.content, modifier = Modifier.size(20.dp)) }
         Spacer(Modifier.weight(1f))
-        Text(title, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold), maxLines = 2, overflow = TextOverflow.Ellipsis)
+        Text(title, style = MaterialTheme.typography.titleLarge, maxLines = 2, overflow = TextOverflow.Ellipsis)
+        Text("Offline · hand-checked", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }

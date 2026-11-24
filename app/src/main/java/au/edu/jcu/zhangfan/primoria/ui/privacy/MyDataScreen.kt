@@ -1,5 +1,11 @@
 package au.edu.jcu.zhangfan.primoria.ui.privacy
 
+import au.edu.jcu.zhangfan.primoria.ui.theme.tabular
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Spacer
@@ -7,7 +13,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.outlined.VerifiedUser
-import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.material3.ListItemDefaults
@@ -33,7 +38,6 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
@@ -114,53 +118,51 @@ fun MyDataScreen(
         ContentColumn(Modifier.padding(padding)) {
             LazyColumn(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
-                modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
+                contentPadding = PaddingValues(bottom = 24.dp),
+                modifier = Modifier.fillMaxSize().padding(horizontal = 20.dp),
             ) {
                 item {
-                    PrimoriaCard(
-                        containerColor = MaterialTheme.colorScheme.primaryContainer,
-                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                        border = false,
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Icon(Icons.Outlined.VerifiedUser, null, modifier = Modifier.size(28.dp))
-                        Spacer(Modifier.height(10.dp))
-                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Text("Your learning history stays on this device", style = MaterialTheme.typography.titleMedium)
-                            Text(
-                                "No account, no ads, no analytics, and no cloud backup. DeepSeek only ever receives " +
-                                    "the topic text, difficulty and age band of a quiz you start.",
-                                style = MaterialTheme.typography.bodyMedium,
-                            )
+                    PrimoriaCard(Modifier.fillMaxWidth().padding(top = 4.dp)) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            Box(
+                                contentAlignment = Alignment.Center,
+                                modifier = Modifier.size(36.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primaryContainer),
+                            ) { Icon(Icons.Outlined.VerifiedUser, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp)) }
+                            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                Text("Your learning history stays on this device", style = MaterialTheme.typography.titleLarge)
+                                Text(
+                                    "No account, ads, analytics or cloud backup. DeepSeek only receives the topic, " +
+                                        "difficulty and age band of a quiz you start.",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
                         }
-                    }
-                }
-                item {
-                    state.counts?.let { counts ->
-                        PrimoriaCard(Modifier.fillMaxWidth().testTag("data_counts")) {
-                            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                Text("Stored right now", style = MaterialTheme.typography.titleSmall)
-                                Text("${counts.topics} topics · ${counts.questions} questions", style = MaterialTheme.typography.bodyMedium)
-                                Text("${counts.attempts} answers · ${counts.reports} reports", style = MaterialTheme.typography.bodyMedium)
+                        state.counts?.let { counts ->
+                            HorizontalDivider(Modifier.padding(vertical = 14.dp), color = PrimoriaTheme.colors.hairline)
+                            Column(Modifier.testTag("data_counts"), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                Text("STORED RIGHT NOW", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text("${counts.topics} topics · ${counts.questions} questions", style = MaterialTheme.typography.bodyMedium.tabular())
+                                Text("${counts.attempts} answers · ${counts.reports} reports", style = MaterialTheme.typography.bodyMedium.tabular())
                             }
                         }
                     }
                 }
-                item { SectionHeader("Keep answers for") }
+                item { SectionHeader("Keep answers for", Modifier.padding(top = 12.dp)) }
                 item {
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        DataRetention.OPTIONS_DAYS.forEach { days ->
-                            FilterChip(
+                    SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+                        DataRetention.OPTIONS_DAYS.forEachIndexed { index, days ->
+                            SegmentedButton(
                                 selected = state.retentionDays == days,
                                 onClick = { onSetRetention(days) },
-                                label = { Text(if (days == 365) "1 year" else "$days days") },
-                                leadingIcon = if (state.retentionDays == days) {
-                                    { Icon(Icons.Outlined.Check, contentDescription = null, modifier = Modifier.size(18.dp)) }
-                                } else {
-                                    null
-                                },
-                                modifier = Modifier.heightIn(min = 48.dp),
-                            )
+                                shape = SegmentedButtonDefaults.itemShape(index, DataRetention.OPTIONS_DAYS.size),
+                                colors = SegmentedButtonDefaults.colors(
+                                    activeContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                                    activeContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                                    activeBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                                    inactiveBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                                ),
+                            ) { Text(if (days == 365) "1 year" else "$days days") }
                         }
                     }
                 }
@@ -171,7 +173,7 @@ fun MyDataScreen(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-                item { SectionHeader("Topics") }
+                item { SectionHeader("Topics", Modifier.padding(top = 12.dp)) }
                 if (state.topics.isEmpty()) {
                     item { Text("No topics stored.", style = MaterialTheme.typography.bodyMedium) }
                 }
@@ -189,7 +191,7 @@ fun MyDataScreen(
                                         modifier = Modifier.size(40.dp).clip(RoundedCornerShape(12.dp)).background(subject.container),
                                     ) { Icon(SubjectArt.icon(topic.title), null, tint = subject.content, modifier = Modifier.size(20.dp)) }
                                 },
-                                headlineContent = { Text(topic.title, style = MaterialTheme.typography.titleSmall) },
+                                headlineContent = { Text(topic.title, style = MaterialTheme.typography.titleLarge) },
                                 supportingContent = {
                                     Text(if (topic.attempts == 0) "No answers yet" else "${topic.attempts} answers")
                                 },

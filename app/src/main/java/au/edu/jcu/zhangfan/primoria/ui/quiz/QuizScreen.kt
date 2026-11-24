@@ -1,5 +1,19 @@
 package au.edu.jcu.zhangfan.primoria.ui.quiz
 
+import kotlinx.coroutines.delay
+import androidx.compose.foundation.layout.width
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.material.icons.outlined.Check
+import androidx.compose.material.icons.filled.Flag
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.IconButton
+import au.edu.jcu.zhangfan.primoria.R
+import androidx.compose.ui.res.painterResource
+import androidx.compose.foundation.Image
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
@@ -95,7 +109,6 @@ import au.edu.jcu.zhangfan.primoria.ui.components.PrimoriaCard
 import au.edu.jcu.zhangfan.primoria.ui.components.ProgressRing
 import au.edu.jcu.zhangfan.primoria.ui.components.SegmentedProgress
 import au.edu.jcu.zhangfan.primoria.ui.components.SourceBadge
-import au.edu.jcu.zhangfan.primoria.ui.components.gradientBackground
 import au.edu.jcu.zhangfan.primoria.ui.components.rememberPressScale
 import au.edu.jcu.zhangfan.primoria.ui.theme.PrimoriaTheme
 import au.edu.jcu.zhangfan.primoria.ui.theme.tabular
@@ -142,7 +155,7 @@ fun QuizScreen(
     Box(
         Modifier
             .fillMaxSize()
-            .gradientBackground(PrimoriaTheme.colors.quizBackdrop),
+            .background(MaterialTheme.colorScheme.background),
     ) {
         ContentColumn(Modifier.windowInsetsPadding(WindowInsets.statusBars)) {
             Column(Modifier.fillMaxSize()) {
@@ -199,7 +212,7 @@ private fun QuizTopBar(state: QuizUiState, onClose: () -> Unit) {
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         modifier = Modifier.fillMaxWidth().padding(start = 12.dp, end = 20.dp, top = 8.dp, bottom = 8.dp),
     ) {
-        FilledTonalIconButton(onClick = onClose) { Icon(Icons.Outlined.Close, contentDescription = "Close quiz") }
+        IconButton(onClick = onClose) { Icon(Icons.Outlined.Close, contentDescription = "Close quiz") }
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             val title = when (state) {
                 is QuizUiState.Active -> "Question ${state.index + 1} of ${state.questions.size}"
@@ -208,7 +221,7 @@ private fun QuizTopBar(state: QuizUiState, onClose: () -> Unit) {
             }
             val topic = (state as? QuizUiState.Active)?.topicTitle ?: (state as? QuizUiState.Finished)?.topicTitle
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(title, style = MaterialTheme.typography.titleSmall.tabular())
+                Text(title, style = MaterialTheme.typography.labelLarge.tabular())
                 if (topic != null) {
                     Text(
                         "  ·  $topic",
@@ -231,13 +244,23 @@ private fun QuizTopBar(state: QuizUiState, onClose: () -> Unit) {
 
 @Composable
 private fun LoadingQuiz() {
+    val bob by rememberInfiniteTransition(label = "loading").animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(tween(1400, easing = FastOutSlowInEasing), RepeatMode.Reverse),
+        label = "bob",
+    )
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
         modifier = Modifier.fillMaxSize().padding(32.dp),
     ) {
-        CircularProgressIndicator(strokeWidth = 5.dp, modifier = Modifier.size(56.dp))
-        Spacer(Modifier.height(24.dp))
+        Image(
+            painterResource(R.drawable.illus_loading),
+            contentDescription = null,
+            modifier = Modifier.size(200.dp).graphicsLayer { translationY = -10.dp.toPx() * bob },
+        )
+        Spacer(Modifier.height(20.dp))
         Text("Preparing your questions…", style = MaterialTheme.typography.headlineSmall)
         Spacer(Modifier.height(6.dp))
         Text(
@@ -245,6 +268,11 @@ private fun LoadingQuiz() {
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
+        )
+        Spacer(Modifier.height(24.dp))
+        LinearProgressIndicator(
+            modifier = Modifier.width(140.dp).clip(RoundedCornerShape(999.dp)),
+            trackColor = MaterialTheme.colorScheme.surfaceContainerHigh,
         )
     }
 }
@@ -276,12 +304,20 @@ private fun ActiveQuiz(
             modifier = Modifier.weight(1f),
         ) { index ->
             val question = state.questions[index]
+            val scroll = rememberScrollState()
+            // Keep every option visible above the feedback panel once an answer is checked.
+            LaunchedEffect(state.feedback != null) {
+                if (state.feedback != null) {
+                    delay(320)
+                    scroll.animateScrollTo(scroll.maxValue)
+                }
+            }
             Column(
-                verticalArrangement = Arrangement.spacedBy(12.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
                 modifier = Modifier
                     .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                    .verticalScroll(scroll)
+                    .padding(horizontal = 20.dp, vertical = 8.dp),
             ) {
                 state.notice?.takeIf { index == 0 }?.let { notice ->
                     Surface(shape = RoundedCornerShape(16.dp), color = PrimoriaTheme.colors.effortContainer, contentColor = PrimoriaTheme.colors.onEffortContainer) {
@@ -291,20 +327,20 @@ private fun ActiveQuiz(
                         }
                     }
                 }
-                PrimoriaCard(shape = RoundedCornerShape(28.dp), contentPadding = 22.dp, modifier = Modifier.fillMaxWidth()) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        SourceBadge(question.source)
-                        Spacer(Modifier.weight(1f))
-                        val reported = question.id in state.reportedIds
-                        TextButton(onClick = { showReportSheet = true }, enabled = !reported) {
-                            Icon(Icons.Outlined.Flag, contentDescription = null, modifier = Modifier.size(16.dp))
-                            Text(if (reported) "Reported" else "Report", Modifier.padding(start = 6.dp))
-                        }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    SourceBadge(question.source)
+                    Spacer(Modifier.weight(1f))
+                    val reported = question.id in state.reportedIds
+                    IconButton(onClick = { showReportSheet = true }, enabled = !reported) {
+                        Icon(
+                            if (reported) Icons.Filled.Flag else Icons.Outlined.Flag,
+                            contentDescription = if (reported) "Reported" else "Report this question",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(20.dp),
+                        )
                     }
-                    Spacer(Modifier.height(14.dp))
-                    Text(question.prompt, style = MaterialTheme.typography.headlineMedium)
                 }
-                Spacer(Modifier.height(4.dp))
+                Text(question.prompt, style = MaterialTheme.typography.headlineMedium, modifier = Modifier.padding(bottom = 14.dp))
                 Column(Modifier.selectableGroup(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     question.options.forEachIndexed { optionIndex, option ->
                         OptionTile(
@@ -398,10 +434,10 @@ private fun OptionTile(
         label = "optionContainer",
     )
     val border = when (result) {
-        OptionResult.CORRECT -> BorderStroke(2.dp, extended.mastery)
-        OptionResult.WRONG_CHOICE -> BorderStroke(2.dp, colors.error)
+        OptionResult.CORRECT -> BorderStroke(1.5.dp, extended.mastery)
+        OptionResult.WRONG_CHOICE -> BorderStroke(1.5.dp, colors.error)
         OptionResult.OTHER -> BorderStroke(1.dp, extended.hairline)
-        null -> if (selected) BorderStroke(2.dp, colors.primary) else BorderStroke(1.dp, extended.hairline)
+        null -> if (selected) BorderStroke(1.5.dp, colors.primary) else BorderStroke(1.dp, extended.hairline)
     }
     // Result is spoken as words so feedback never depends on colour alone.
     val resultLabel = when (result) {
@@ -413,7 +449,7 @@ private fun OptionTile(
         result == OptionResult.CORRECT -> extended.mastery
         result == OptionResult.WRONG_CHOICE -> colors.error
         selected && result == null -> colors.primary
-        else -> colors.surfaceContainerHigh
+        else -> colors.surfaceContainer
     }
     val badgeContent = when {
         result == OptionResult.CORRECT -> extended.onMastery
@@ -422,12 +458,12 @@ private fun OptionTile(
         else -> colors.onSurfaceVariant
     }
     Surface(
-        shape = RoundedCornerShape(18.dp),
+        shape = RoundedCornerShape(14.dp),
         color = container,
         border = border,
         modifier = Modifier
             .fillMaxWidth()
-            .heightIn(min = 60.dp)
+            .heightIn(min = 56.dp)
             .graphicsLayer { scaleX = scale; scaleY = scale }
             .alpha(if (result == OptionResult.OTHER) 0.6f else 1f)
             .selectable(
@@ -444,15 +480,15 @@ private fun OptionTile(
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp)) {
             Box(
                 contentAlignment = Alignment.Center,
-                modifier = Modifier.size(34.dp).clip(CircleShape).background(badgeColor),
+                modifier = Modifier.size(30.dp).clip(CircleShape).background(badgeColor),
             ) {
                 when (result) {
-                    OptionResult.CORRECT -> Icon(Icons.Outlined.CheckCircle, null, tint = badgeContent, modifier = Modifier.size(20.dp))
-                    OptionResult.WRONG_CHOICE -> Icon(Icons.Outlined.Cancel, null, tint = badgeContent, modifier = Modifier.size(20.dp))
-                    else -> Text(letter.toString(), style = MaterialTheme.typography.labelLarge, color = badgeContent)
+                    OptionResult.CORRECT -> Icon(Icons.Outlined.Check, null, tint = badgeContent, modifier = Modifier.size(18.dp))
+                    OptionResult.WRONG_CHOICE -> Icon(Icons.Outlined.Close, null, tint = badgeContent, modifier = Modifier.size(18.dp))
+                    else -> Text(letter.toString(), style = MaterialTheme.typography.labelMedium, color = badgeContent)
                 }
             }
-            Text(text, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f).padding(start = 14.dp))
+            Text(text, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f).padding(start = 14.dp))
         }
     }
 }
@@ -476,10 +512,10 @@ private fun FeedbackPanel(
         else -> null
     }
     Surface(
-        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
+        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
         color = extended.cardSurface,
         border = BorderStroke(1.dp, extended.hairline),
-        shadowElevation = 12.dp,
+        shadowElevation = 3.dp,
         modifier = Modifier.fillMaxWidth().semantics { liveRegion = LiveRegionMode.Polite },
     ) {
         Column(
@@ -495,15 +531,14 @@ private fun FeedbackPanel(
                     if (feedback.correct) Icons.Outlined.CheckCircle else Icons.Outlined.Lightbulb,
                     contentDescription = null,
                     tint = accent,
-                    modifier = Modifier.size(26.dp),
+                    modifier = Modifier.size(22.dp),
                 )
                 Text(
                     if (feedback.correct) "Correct." else "Not quite — here's why:",
                     style = MaterialTheme.typography.headlineSmall,
-                    color = accent,
                 )
             }
-            Text(question.explanation, style = MaterialTheme.typography.bodyLarge)
+            Text(question.explanation, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             if (question.source == ContentSource.AI_GENERATED) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
@@ -583,43 +618,53 @@ private fun QuizSummary(state: QuizUiState.Finished, onDone: () -> Unit, onPract
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
             .windowInsetsPadding(WindowInsets.navigationBars)
-            .padding(16.dp),
+            .padding(horizontal = 20.dp, vertical = 8.dp),
     ) {
-        Column(Modifier.padding(horizontal = 4.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text("${state.correct} of ${state.total} correct", style = MaterialTheme.typography.displayMedium.tabular())
+        Image(
+            painterResource(R.drawable.illus_summary),
+            contentDescription = null,
+            modifier = Modifier.size(168.dp).align(Alignment.CenterHorizontally),
+        )
+        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
+            Text("${state.correct} of ${state.total} correct", style = MaterialTheme.typography.displaySmall.tabular())
             Text(
                 if (state.correct == state.total) "Every answer right — great work." else "Every question you check helps the next one stick.",
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
             )
         }
         // Effort and knowledge are shown side by side but never merged (commitment 05).
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.height(IntrinsicSize.Max)) {
-            PrimoriaCard(containerColor = extended.masteryContainer, contentColor = extended.onMasteryContainer, border = false, modifier = Modifier.weight(1f).fillMaxHeight()) {
-                Text("Mastery", style = MaterialTheme.typography.labelLarge)
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.height(IntrinsicSize.Max).padding(top = 4.dp)) {
+            PrimoriaCard(contentPadding = 16.dp, modifier = Modifier.weight(1f).fillMaxHeight()) {
+                Text("Mastery", style = MaterialTheme.typography.labelMedium, color = extended.mastery)
                 Spacer(Modifier.height(12.dp))
                 ProgressRing(
                     modifier = Modifier.align(Alignment.CenterHorizontally),
                     progress = state.mastery.toFloat(),
                     colors = extended.masteryRing,
-                    trackColor = extended.onMasteryContainer.copy(alpha = 0.12f),
-                    size = 84.dp,
-                    strokeWidth = 9.dp,
+                    trackColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    size = 76.dp,
+                    strokeWidth = 7.dp,
                 ) { Text("${(state.mastery * 100).roundToInt()}%", style = MaterialTheme.typography.titleLarge.tabular()) }
                 Spacer(Modifier.height(12.dp))
                 MasteryBadge(state.masteryLevel, Modifier.align(Alignment.CenterHorizontally))
             }
-            PrimoriaCard(containerColor = extended.effortContainer, contentColor = extended.onEffortContainer, border = false, modifier = Modifier.weight(1f).fillMaxHeight()) {
-                Text("Effort", style = MaterialTheme.typography.labelLarge)
+            PrimoriaCard(contentPadding = 16.dp, modifier = Modifier.weight(1f).fillMaxHeight()) {
+                Text("Effort", style = MaterialTheme.typography.labelMedium, color = extended.effort)
                 Spacer(Modifier.height(12.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Outlined.Bolt, null, tint = extended.effort, modifier = Modifier.size(28.dp))
+                Spacer(Modifier.weight(1f))
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.align(Alignment.CenterHorizontally)) {
+                    Icon(Icons.Outlined.Bolt, null, tint = extended.effort, modifier = Modifier.size(22.dp))
                     Text("+${state.xpEarned} XP", style = MaterialTheme.typography.headlineLarge.tabular())
                 }
-                Spacer(Modifier.height(12.dp))
+                Spacer(Modifier.weight(1f))
                 Text(
                     if (state.dailyCapReached) "Today's XP limit is reached. Learning still builds mastery." else "XP rewards correct first answers.",
                     style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth(),
                 )
             }
         }
@@ -627,10 +672,11 @@ private fun QuizSummary(state: QuizUiState.Finished, onDone: () -> Unit, onPract
             "Mastery estimates what you know about ${state.topicTitle}; XP only measures effort.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(horizontal = 4.dp),
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth(),
         )
         Spacer(Modifier.height(4.dp))
-        Button(onClick = onPractiseAgain, modifier = Modifier.fillMaxWidth().heightIn(min = 54.dp)) { Text("Practise this topic again") }
-        OutlinedButton(onClick = onDone, modifier = Modifier.fillMaxWidth().heightIn(min = 54.dp)) { Text("Done") }
+        Button(onClick = onPractiseAgain, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) { Text("Practise this topic again") }
+        TextButton(onClick = onDone, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) { Text("Done") }
     }
 }

@@ -63,13 +63,14 @@ phone numbers and URLs a learner might type into the topic box. Scores, history,
 
 The interface uses a custom design system rather than default Material colours (see `ui/theme` and `ui/components`):
 
-* **Colour roles with meaning.** Warm "paper" light theme and obsidian dark theme with an indigo core. **Amber is only ever effort/XP** and **teal is only ever mastery**, so learners can tell showing up from understanding; correctness is never shown in the progress bar, and teal is never used for a wrong answer.
-* **Typography.** Plus Jakarta Sans (SIL OFL, bundled in `res/font`, licence in `docs/licenses`) with a full Material 3 type scale and tabular numerals for XP, percentages and counters.
-* **Signature components.** Gradient hero with a weekly-goal ring, subject cards coloured and iconed by subject family (`SubjectArt`), segmented question progress, a slide-up feedback sheet, concentric mastery/effort rings, and gradient capsule bars with labelled values.
+* **Colour roles with meaning.** A quiet "editorial" look: near-neutral paper background, white hairline cards with no stacked shadows, and a deep indigo used only for actions; a clean graphite dark theme. **Amber is only ever effort/XP** and **teal is only ever mastery**, so learners can tell showing up from understanding; correctness is never shown in the progress bar, and teal is never used for a wrong answer.
+* **Typography.** Plus Jakarta Sans (SIL OFL, bundled in `res/font`, licence in `docs/licenses`) with a compact Material 3 type scale (hierarchy from weight and colour rather than size) and tabular numerals for XP, percentages and counters.
+* **Signature components.** Subject tiles with a colour and glyph per subject family (`SubjectArt`), segmented question progress, a slide-up feedback sheet, one overview card with concentric mastery/effort rings, and a 7-day effort chart where empty days are short neutral stubs (never full-height tracks that read as "full").
+* **Illustrations.** Four flat illustrations in the app palette (welcome, age band, loading, quiz summary), generated with OpenAI ImageGen via Codex and checked on light and dark backgrounds; stored as WebP in `res/drawable-nodpi`.
 * **Motion.** Cards press to 0.97 with a soft spring, rings animate from their previous value, questions slide in; no confetti, timers or slot-machine effects.
 * **Accessibility.** Feedback uses icon + words + colour; option results are exposed to TalkBack as state descriptions; charts and rings have spoken summaries; 48dp targets; a "Larger text" setting scales on top of the system font size.
 
-The design system was drafted with a design-review pass (see *Acknowledgements*) and checked on phone, tablet, light and dark.
+The design system was drafted, then revised after a screenshot-based visual review (see *Acknowledgements*) and checked on phone, tablet, light and dark.
 
 ---
 
@@ -156,5 +157,6 @@ and DeepSeek always placing the correct answer first).
 ## Acknowledgements and GenAI use
 * Quiz content is generated at runtime by **DeepSeek**; the offline library was written and checked by hand.
 * Generative AI tools (Claude Code, OpenAI Codex and Google Gemini) were used during development to help with code,
-  tests and UI review, as described in the Generative AI Use Declaration submitted with this assessment.
+  tests, UI review and the four in-app illustrations (OpenAI ImageGen via Codex), as described in the Generative AI
+  Use Declaration submitted with this assessment.
   All generated code was reviewed, run and tested on an emulator.

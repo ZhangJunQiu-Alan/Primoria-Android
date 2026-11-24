@@ -13,7 +13,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
@@ -29,15 +28,15 @@ import java.time.format.TextStyle
 import java.util.Locale
 
 /**
- * Seven capsule bars with gradient fills, each labelled with its value, drawn against a
+ * Seven rounded bars (today solid, earlier days lighter), each labelled with its value, drawn against a
  * dashed line marking the daily XP cap. TalkBack reads a plain-language summary instead.
  */
 @Composable
 fun WeeklyXpChart(week: List<DayActivity>, dailyCap: Int, modifier: Modifier = Modifier) {
-    val ring = PrimoriaTheme.colors.effortRing
     val effort = PrimoriaTheme.colors.effort
-    val track = MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.7f)
-    val capColor = MaterialTheme.colorScheme.outline
+    val track = MaterialTheme.colorScheme.surfaceContainerHighest
+    val capColor = MaterialTheme.colorScheme.outlineVariant
+    val baseline = MaterialTheme.colorScheme.outlineVariant
     val labelStyle = MaterialTheme.typography.labelSmall.tabular()
     val capStyle = labelStyle.copy(color = MaterialTheme.colorScheme.onSurfaceVariant)
     val valueStyle = labelStyle.copy(color = effort)
@@ -53,7 +52,7 @@ fun WeeklyXpChart(week: List<DayActivity>, dailyCap: Int, modifier: Modifier = M
             val chartTop = labelSpace
             val chartHeight = size.height - chartTop
             val slot = size.width / week.size
-            val barWidth = minOf(slot * 0.45f, 24.dp.toPx())
+            val barWidth = minOf(slot * 0.42f, 22.dp.toPx())
             val maxValue = dailyCap.coerceAtLeast(1).toFloat()
             val minBar = 8.dp.toPx()
 
@@ -64,20 +63,26 @@ fun WeeklyXpChart(week: List<DayActivity>, dailyCap: Int, modifier: Modifier = M
                 strokeWidth = 1.dp.toPx(),
                 pathEffect = PathEffect.dashPathEffect(floatArrayOf(8f, 8f)),
             )
+            drawLine(baseline, Offset(0f, size.height), Offset(size.width, size.height), strokeWidth = 1.dp.toPx())
             val cap = measurer.measure("$dailyCap", capStyle)
             drawText(cap, topLeft = Offset(size.width - cap.size.width, chartTop - cap.size.height - 2.dp.toPx()))
 
             week.forEachIndexed { index, day ->
                 val left = index * slot + (slot - barWidth) / 2
-                drawRoundRect(track, Offset(left, chartTop), Size(barWidth, chartHeight), CornerRadius(barWidth / 2))
-                if (day.xp <= 0) return@forEachIndexed
+                // Empty days get a short neutral stub, never a full-height track that reads as "full".
+                if (day.xp <= 0) {
+                    val stub = 4.dp.toPx()
+                    drawRoundRect(track, Offset(left, size.height - stub), Size(barWidth, stub), CornerRadius(stub / 2))
+                    return@forEachIndexed
+                }
                 val height = (chartHeight * (day.xp / maxValue).coerceIn(0f, 1f) * grow).coerceAtLeast(minBar)
                 val top = size.height - height
+                val corner = minOf(barWidth / 2, 6.dp.toPx())
                 drawRoundRect(
-                    brush = Brush.verticalGradient(ring.reversed(), startY = top, endY = size.height),
+                    color = if (index == week.lastIndex) effort else effort.copy(alpha = 0.55f),
                     topLeft = Offset(left, top),
                     size = Size(barWidth, height),
-                    cornerRadius = CornerRadius(minOf(barWidth, height) / 2),
+                    cornerRadius = CornerRadius(corner, corner),
                 )
                 val value = measurer.measure("${day.xp}", valueStyle)
                 val labelTop = (top - value.size.height - 4.dp.toPx()).coerceAtLeast(chartTop + 2.dp.toPx())

@@ -59,9 +59,9 @@ fun WeeklyGoalRow(streak: StreakSummary, modifier: Modifier = Modifier, ringSize
         ProgressRing(
             progress = done / streak.weeklyGoal.toFloat(),
             colors = colors.effortRing,
-            trackColor = MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.7f),
+            trackColor = MaterialTheme.colorScheme.surfaceContainerHigh,
             size = ringSize.dp,
-            strokeWidth = 7.dp,
+            strokeWidth = 6.dp,
         ) {
             Text("$done/${streak.weeklyGoal}", style = MaterialTheme.typography.titleSmall.tabular())
         }

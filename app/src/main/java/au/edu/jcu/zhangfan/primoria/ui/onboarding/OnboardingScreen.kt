@@ -1,5 +1,15 @@
 package au.edu.jcu.zhangfan.primoria.ui.onboarding
 
+import androidx.compose.material.icons.outlined.Public
+import androidx.compose.material.icons.outlined.Block
+import androidx.compose.material.icons.outlined.Send
+import au.edu.jcu.zhangfan.primoria.R
+import androidx.compose.ui.res.painterResource
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.Image
+import androidx.annotation.DrawableRes
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.tween
@@ -30,7 +40,6 @@ import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.AutoStories
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.School
 import androidx.compose.material.icons.outlined.Spa
@@ -42,7 +51,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
+import au.edu.jcu.zhangfan.primoria.ui.components.PrimoriaSwitch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -62,10 +71,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import au.edu.jcu.zhangfan.primoria.domain.model.AgeGroup
 import au.edu.jcu.zhangfan.primoria.ui.components.ContentColumn
-import au.edu.jcu.zhangfan.primoria.ui.components.DualRings
 import au.edu.jcu.zhangfan.primoria.ui.components.PrimoriaCard
 import au.edu.jcu.zhangfan.primoria.ui.components.SegmentedProgress
-import au.edu.jcu.zhangfan.primoria.ui.components.gradientBackground
 import au.edu.jcu.zhangfan.primoria.ui.theme.PrimoriaTheme
 
 @Composable
@@ -99,7 +106,7 @@ fun OnboardingScreen(
     onGuardianAwareChange: (Boolean) -> Unit,
     onFinish: () -> Unit,
 ) {
-    Box(Modifier.fillMaxSize().gradientBackground(PrimoriaTheme.colors.heroGradient)) {
+    Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         ContentColumn(Modifier.windowInsetsPadding(WindowInsets.safeDrawing)) {
             Column(Modifier.fillMaxSize().padding(horizontal = 24.dp)) {
                 Spacer(Modifier.height(16.dp))
@@ -147,74 +154,79 @@ fun OnboardingScreen(
 }
 
 @Composable
-private fun WelcomeStep() {
-    val colors = PrimoriaTheme.colors
-    Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(vertical = 8.dp)) {
-        DualRings(
-            outerProgress = 0.78f,
-            outerColors = colors.masteryRing,
-            innerProgress = 0.55f,
-            innerColors = colors.effortRing,
-            trackColor = MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.5f),
-            size = 120.dp,
-            strokeWidth = 12.dp,
+private fun ColumnScope.WelcomeStep() {
+    Illustration(R.drawable.illus_welcome, Modifier.align(Alignment.CenterHorizontally).size(200.dp))
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Text("Welcome to Primoria", style = MaterialTheme.typography.displaySmall)
+        Text(
+            "Learn any topic at your own pace — no timers, no pressure.",
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        Icon(Icons.Outlined.AutoStories, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(36.dp))
     }
-    Text("Welcome to Primoria", style = MaterialTheme.typography.displayMedium)
-    Text(
-        "Learn any topic at your own pace — no timers, no pressure.",
-        style = MaterialTheme.typography.bodyLarge,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-    )
-    PromiseRow(Icons.Outlined.TipsAndUpdates, "Practise anything", "Type a topic and get a short quiz with clear explanations.")
-    PromiseRow(Icons.Outlined.Spa, "Progress without pressure", "Goals are weekly, rest days are fine, and XP has a daily limit.")
-    PromiseRow(Icons.Outlined.Lock, "Your data stays here", "No account, no ads. Your history lives on this device and you can delete it any time.")
+    Spacer(Modifier.height(4.dp))
+    Column(verticalArrangement = Arrangement.spacedBy(18.dp)) {
+        PromiseRow(Icons.Outlined.TipsAndUpdates, "Practise anything", "Type a topic and get a short quiz with clear explanations.")
+        PromiseRow(Icons.Outlined.Spa, "Progress without pressure", "Goals are weekly, rest days are fine, and XP has a daily limit.")
+        PromiseRow(Icons.Outlined.Lock, "Your data stays here", "No account, no ads. Your history lives on this device.")
+    }
 }
 
 @Composable
 private fun PromiseRow(icon: ImageVector, title: String, body: String) {
-    PrimoriaCard(contentPadding = 16.dp, modifier = Modifier.fillMaxWidth()) {
-        Row(horizontalArrangement = Arrangement.spacedBy(14.dp), verticalAlignment = Alignment.CenterVertically) {
-            Box(
-                contentAlignment = Alignment.Center,
-                modifier = Modifier.size(40.dp).clip(RoundedCornerShape(12.dp)).background(MaterialTheme.colorScheme.primaryContainer),
-            ) { Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimaryContainer, modifier = Modifier.size(22.dp)) }
-            Column {
-                Text(title, style = MaterialTheme.typography.titleSmall)
-                Text(body, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
+    Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier.size(36.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primaryContainer),
+        ) { Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp)) }
+        Column(Modifier.weight(1f)) {
+            Text(title, style = MaterialTheme.typography.titleLarge)
+            Text(body, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
 
 @Composable
-private fun AgeStep(selected: AgeGroup?, onChoose: (AgeGroup) -> Unit) {
-    Text("How old are you?", style = MaterialTheme.typography.displayMedium)
-    Text(
-        "This only changes guidance and defaults. It's stored on this device and never sent anywhere.",
-        style = MaterialTheme.typography.bodyLarge,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-    )
-    Column(Modifier.selectableGroup(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+private fun Illustration(@DrawableRes res: Int, modifier: Modifier = Modifier) {
+    Image(painterResource(res), contentDescription = null, modifier = modifier)
+}
+
+@Composable
+private fun ColumnScope.AgeStep(selected: AgeGroup?, onChoose: (AgeGroup) -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Text("How old are you?", style = MaterialTheme.typography.displaySmall)
+        Text(
+            "This only changes guidance and defaults. It stays on this device.",
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+    Column(Modifier.selectableGroup().padding(top = 8.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         AgeOption(Icons.Outlined.School, "13–17", "Secondary school", selected == AgeGroup.TEEN) { onChoose(AgeGroup.TEEN) }
         AgeOption(Icons.Outlined.Work, "18 or older", "University or independent learner", selected == AgeGroup.ADULT) { onChoose(AgeGroup.ADULT) }
     }
+    Spacer(Modifier.height(12.dp))
+    Illustration(R.drawable.illus_age, Modifier.align(Alignment.CenterHorizontally).size(210.dp))
 }
 
 @Composable
 private fun AgeOption(icon: ImageVector, title: String, subtitle: String, selected: Boolean, onClick: () -> Unit) {
     Surface(
-        shape = RoundedCornerShape(20.dp),
+        shape = RoundedCornerShape(16.dp),
         color = if (selected) MaterialTheme.colorScheme.primaryContainer else PrimoriaTheme.colors.cardSurface,
-        border = BorderStroke(if (selected) 2.dp else 1.dp, if (selected) MaterialTheme.colorScheme.primary else PrimoriaTheme.colors.hairline),
+        border = BorderStroke(if (selected) 1.5.dp else 1.dp, if (selected) MaterialTheme.colorScheme.primary else PrimoriaTheme.colors.hairline),
         modifier = Modifier
             .fillMaxWidth()
-            .heightIn(min = 72.dp)
+            .heightIn(min = 64.dp)
             .selectable(selected = selected, onClick = onClick, role = Role.RadioButton),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(16.dp)) {
-            Icon(icon, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(28.dp))
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier.size(36.dp).clip(CircleShape).background(
+                    if (selected) MaterialTheme.colorScheme.surfaceContainerLowest else MaterialTheme.colorScheme.primaryContainer,
+                ),
+            ) { Icon(icon, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp)) }
             Column(Modifier.weight(1f).padding(horizontal = 14.dp)) {
                 Text(title, style = MaterialTheme.typography.titleLarge)
                 Text(subtitle, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -230,17 +242,16 @@ private fun ConsentStep(
     onAiConsentChange: (Boolean) -> Unit,
     onGuardianAwareChange: (Boolean) -> Unit,
 ) {
-    Text("Your privacy, your choice", style = MaterialTheme.typography.displayMedium)
-    PrimoriaCard(modifier = Modifier.fillMaxWidth()) {
-        Text("What stays on this device", style = MaterialTheme.typography.titleSmall)
-        Spacer(Modifier.height(6.dp))
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Text("Your privacy, your choice", style = MaterialTheme.typography.displaySmall)
         Text(
-            "Your answers, scores, XP, mastery and settings. They're excluded from cloud backup and " +
-                "answers older than your retention period (90 days by default) are deleted automatically.",
-            style = MaterialTheme.typography.bodyMedium,
+            "Answers, scores, XP and settings stay on this device, are left out of cloud backup, and " +
+                "old answers are deleted after 90 days by default.",
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
-    PrimoriaCard(modifier = Modifier.fillMaxWidth()) {
+    PrimoriaCard(modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
@@ -249,19 +260,17 @@ private fun ConsentStep(
                 .testTag("ai_consent_toggle"),
         ) {
             Column(Modifier.weight(1f)) {
-                Text("Optional: AI-generated quizzes", style = MaterialTheme.typography.titleSmall)
+                Text("Optional: AI-generated quizzes", style = MaterialTheme.typography.titleLarge)
                 Text("Off unless you turn it on.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-            Switch(checked = state.aiConsent, onCheckedChange = null)
+            PrimoriaSwitch(checked = state.aiConsent)
         }
-        Spacer(Modifier.height(8.dp))
-        Text(
-            "If turned on, only the topic you type, the difficulty and your age band (13–17 or 18+) are sent " +
-                "to DeepSeek, an AI service whose servers are in China, to write your questions. Your name, " +
-                "scores and history are never sent. Leave it off to use the six built-in offline topics.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+        HorizontalDivider(Modifier.padding(vertical = 14.dp), color = PrimoriaTheme.colors.hairline)
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            ConsentPoint(Icons.Outlined.Send, "Sent: only your topic, the difficulty and your age band (13–17 or 18+).")
+            ConsentPoint(Icons.Outlined.Block, "Never sent: your name, scores or history.")
+            ConsentPoint(Icons.Outlined.Public, "Processed by DeepSeek, whose servers are in China. Leave it off to use the six offline topics.")
+        }
     }
     if (state.ageGroup == AgeGroup.TEEN) {
         PrimoriaCard(modifier = Modifier.fillMaxWidth(), contentPadding = 8.dp) {
@@ -288,4 +297,12 @@ private fun ConsentStep(
         style = MaterialTheme.typography.bodySmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
     )
+}
+
+@Composable
+private fun ConsentPoint(icon: ImageVector, text: String) {
+    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        Icon(icon, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(16.dp).padding(top = 2.dp))
+        Text(text, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
 }

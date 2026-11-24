@@ -15,6 +15,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -108,4 +110,19 @@ fun StatTile(
             }
         }
     }
+}
+
+/** M3 switch with a softer "off" state: light track and a quiet outline instead of a dark ring. */
+@Composable
+fun PrimoriaSwitch(checked: Boolean, modifier: Modifier = Modifier) {
+    Switch(
+        checked = checked,
+        onCheckedChange = null,
+        colors = SwitchDefaults.colors(
+            uncheckedTrackColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+            uncheckedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.35f),
+            uncheckedThumbColor = MaterialTheme.colorScheme.outline,
+        ),
+        modifier = modifier,
+    )
 }

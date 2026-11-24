@@ -6,6 +6,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -79,7 +80,7 @@ class ScreenComposeTest {
             }
         }
         compose.onNodeWithText("AI-generated").assertIsDisplayed()
-        compose.onNodeWithText("Report").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Report this question").assertIsDisplayed()
         compose.onNodeWithTag("quiz_primary_action").assertIsNotEnabled()
     }
 
@@ -106,7 +107,7 @@ class ScreenComposeTest {
                 QuizScreen(QuizUiState.Active("Maths", listOf(question)), {}, {}, {}, {}, { q, r -> reported = q to r }, {}, {})
             }
         }
-        compose.onNodeWithText("Report").performClick()
+        compose.onNodeWithContentDescription("Report this question").performClick()
         compose.onNodeWithText("The answer is wrong").performClick()
         compose.onNodeWithText("Submit report").performClick()
 
